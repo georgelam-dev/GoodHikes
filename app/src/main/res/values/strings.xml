@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">GoodHikes</string>
     <string name="title_activity_maps">Map</string>
+    <string name="google_app_id">ferrous-linker-121901</string>
 </resources>
