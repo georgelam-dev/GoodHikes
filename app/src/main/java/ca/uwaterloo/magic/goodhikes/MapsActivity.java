@@ -5,6 +5,8 @@ import android.os.Bundle;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMapOptions;
+import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
@@ -28,8 +30,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
+     * This is where we can add markers or lines, add listeners or move the camera.
      * If Google Play services is not installed on the device, the user will be prompted to install
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
@@ -38,9 +39,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        // Add a marker in UW and move the camera
+        LatLng waterloo = new LatLng(43.468889, -80.54); //43.4689° N, 80.5400° W
+        mMap.addMarker(new MarkerOptions().position(waterloo).title("University of Waterloo"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(waterloo));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(15.0f));
+        mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+
+        UiSettings settings = mMap.getUiSettings();
+        settings.setCompassEnabled(true);
+        settings.setMapToolbarEnabled(true);
+        settings.setScrollGesturesEnabled(true);
+        settings.setZoomControlsEnabled(true);
     }
 }
