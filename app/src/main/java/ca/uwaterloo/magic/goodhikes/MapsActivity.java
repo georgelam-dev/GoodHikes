@@ -8,20 +8,24 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import android.widget.Toast;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 import ca.uwaterloo.magic.goodhikes.utils.PermissionUtils;
 
@@ -36,6 +40,7 @@ public class MapsActivity extends AppCompatActivity
 
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
+    LocationRequest mLocationRequest;
 
     // Request code for location permission request.
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
@@ -49,6 +54,8 @@ public class MapsActivity extends AppCompatActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        createAndConnectToGoogleAPIClient();
     }
 
 
@@ -102,6 +109,13 @@ public class MapsActivity extends AppCompatActivity
     public void onLocationChanged(Location location) {
 //        LatLng coordinates = new LatLng(location.getLatitude(), location.getLongitude());
 //        mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinates));
+
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
+
+        TextView txt = (TextView)findViewById(R.id.textView);
+        String output = txt.getText() + "[" + time.format(cal.getTime()) + "] " + String.valueOf(location.getLatitude()) + ", " + String.valueOf(location.getLongitude()) + "\n";
+        txt.setText(output);
     }
 
     @Override
@@ -139,7 +153,7 @@ public class MapsActivity extends AppCompatActivity
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
 
-    private void showUWaterlooMarkerOnMap(){
+    private void showUWaterlooMarkerOnMap() {
         // UWaterloo: 43.4689° N, 80.5400° W; Davis Centre: 43.472761	-80.542164
         LatLng waterloo = new LatLng(43.472761, -80.542164);
         mMap.addMarker(new MarkerOptions().position(waterloo).title("University of Waterloo"));
@@ -147,7 +161,7 @@ public class MapsActivity extends AppCompatActivity
 
     }
 
-    private void createAndConnectToGoogleAPIClient(){
+    private void createAndConnectToGoogleAPIClient() {
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new GoogleApiClient.Builder(this)
                     .addConnectionCallbacks(this)
@@ -155,7 +169,14 @@ public class MapsActivity extends AppCompatActivity
                     .addApi(LocationServices.API)
                     .build();
         }
-        mGoogleApiClient.connect();
+        createLocationRequest();
+    }
+
+    protected void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(3000);
+        mLocationRequest.setFastestInterval(3000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
     @Override
@@ -165,7 +186,7 @@ public class MapsActivity extends AppCompatActivity
             // Permission to access the location is missing.
             PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
-        } else{
+        } else {
             Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                     mGoogleApiClient);
             if (mLastLocation != null) {
@@ -175,6 +196,41 @@ public class MapsActivity extends AppCompatActivity
 //                showUWaterlooMarkerOnMap();
             }
         }
+        startLocationUpdates();
+    }
+
+    protected void startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        LocationServices.FusedLocationApi.requestLocationUpdates(
+                mGoogleApiClient, mLocationRequest, this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (mGoogleApiClient.isConnected()) {
+            startLocationUpdates();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopLocationUpdates();
+    }
+
+    protected void stopLocationUpdates() {
+        LocationServices.FusedLocationApi.removeLocationUpdates(
+                mGoogleApiClient, this);
     }
 
     @Override
@@ -184,7 +240,7 @@ public class MapsActivity extends AppCompatActivity
     public void onConnectionFailed(ConnectionResult result){}
 
     protected void onStart() {
-        createAndConnectToGoogleAPIClient();
+        mGoogleApiClient.connect();
         super.onStart();
     }
 
