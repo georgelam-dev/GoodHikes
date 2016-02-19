@@ -18,22 +18,7 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-/**
- * IntentService is usually used as a background worker thread.
- * Work is supplied to the thread by sending Intents to it context.startService(intent),
- * which in turn calls onHandleIntent(Intent intent). Only one worker thread is running -
- * if the service is already performing a task next Intent execution will be queued.
- *
- * This is really not what we want with GPSLoggingService - all we want is to start GPSUpdates
- * in the background, and be able to start/stop updates logging.
- * But as IntentService executes in a separate thread, I've reused it.
- *
- * We are starting the service with startLocationUpdates() which sends an initializing Intent to the service.
- * Then we retrieve a handle to the service (mLoggingServiceBinder) by binding to the service in the client:
- * bindService(intent, mConnection, BIND_AUTO_CREATE);
- * We use this handle to start/stop the updates.
- */
-public class GPSLoggingService extends IntentService
+public class GPSLoggingService extends Service
         implements
         LocationListener,
         GoogleApiClient.ConnectionCallbacks,
@@ -42,13 +27,20 @@ public class GPSLoggingService extends IntentService
     protected static final String LOG_TAG = "GPSLoggingService";
     protected GoogleApiClient mGoogleApiClient;
     protected LocationRequest mLocationRequest;
-    public static final String startLocationUpdates = "ca.uwaterloo.magic.goodhikes.location.update.start";
     public static final String locationUpdateAction = "ca.uwaterloo.magic.goodhikes.location.update";
     private final IBinder mBinder = new LoggingBinder();
-    private Looper mLooper;
 
-    public GPSLoggingService() {
-        super(GPSLoggingService.class.toString());
+    private Looper mLooper;
+    private LooperThread mLooperThread;
+    class LooperThread extends Thread {
+        public void run() {
+            Looper.prepare();
+            mLooper = Looper.myLooper();
+//            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() +
+//                    "; Thread looper" + mLooper.toString() + "; Created a runner thread");
+            startTracking();
+            Looper.loop();
+        }
     }
 
     /**
@@ -66,31 +58,14 @@ public class GPSLoggingService extends IntentService
         return mBinder;
     }
 
-    public static void startLocationUpdatesService(Context context) {
-        Intent intent = new Intent(context, GPSLoggingService.class);
-        intent.setAction(startLocationUpdates);
-        context.startService(intent);
-    }
-
-    @Override
-    protected void onHandleIntent(Intent intent) {
-        if (intent != null) {
-            final String action = intent.getAction();
-            if (action.equals(startLocationUpdates)) {
-                createGoogleAPIClient();
-                createLocationRequest();
-                mGoogleApiClient.connect();
-                mLooper = Looper.myLooper();
-//                Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() +
-//                    "; Thread looper" + mLooper.toString() + "; Connection to google API");
-            }
-        }
-    }
-
     @Override
     public void onCreate() {
 //        android.os.Debug.waitForDebugger();
         super.onCreate();
+        createGoogleAPIClient();
+        createLocationRequest();
+        mGoogleApiClient.connect();
+//        Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId()+"; Connection to google API");
     }
 
 
@@ -121,7 +96,7 @@ public class GPSLoggingService extends IntentService
     }
 
     public void startTracking() {
-        if (mGoogleApiClient.isConnected()) {
+        if (mGoogleApiClient.isConnected() && mLooper!=null) {
             Location broadcastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
             broadcastLocation(broadcastLocation);
             startLocationUpdates();
@@ -133,6 +108,8 @@ public class GPSLoggingService extends IntentService
         if (mGoogleApiClient.isConnected()) {
             stopLocationUpdates();
             mGoogleApiClient.disconnect();
+            mLooper.quit();
+            mLooperThread.interrupt();
 //            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Stopped location updates");
         }
     }
@@ -144,7 +121,8 @@ public class GPSLoggingService extends IntentService
     */
     @Override
     public void onConnected(Bundle connectionHint) {
-        startTracking();
+        mLooperThread = new LooperThread();
+        mLooperThread.start();
     }
 
     @Override

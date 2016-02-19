@@ -57,14 +57,15 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onStart() {
         super.onStart();
-        mFilter=new IntentFilter(GPSLoggingService.locationUpdateAction);
-        mGPSUpdatesReceiver = new GPSUpdatesReceiver();
-        mConnection = new GPSLoggingServiceConnection();
-        LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
-        Intent intent= new Intent(this,GPSLoggingService.class);
-        bindService(intent, mConnection, BIND_AUTO_CREATE);
-//        Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Binding to service");
-        GPSLoggingService.startLocationUpdatesService(this);
+        if(!mBound) {
+            mFilter = new IntentFilter(GPSLoggingService.locationUpdateAction);
+            mGPSUpdatesReceiver = new GPSUpdatesReceiver();
+            mConnection = new GPSLoggingServiceConnection();
+            LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
+            Intent intent = new Intent(this, GPSLoggingService.class);
+            bindService(intent, mConnection, BIND_AUTO_CREATE);
+//            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Binding to service");
+        }
     }
 
     @Override
