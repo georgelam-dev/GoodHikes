@@ -1,21 +1,20 @@
 package ca.uwaterloo.magic.goodhikes;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
+import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -27,24 +26,19 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import ca.uwaterloo.magic.goodhikes.utils.PermissionUtils;
-
 public class MapsActivity extends AppCompatActivity
         implements
         OnMapReadyCallback,
-        GoogleMap.OnMyLocationButtonClickListener,
-        ActivityCompat.OnRequestPermissionsResultCallback,
-        LocationListener,
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener {
+        GoogleMap.OnMyLocationButtonClickListener{
 
-    private GoogleMap mMap;
-    private GoogleApiClient mGoogleApiClient;
-    LocationRequest mLocationRequest;
+    protected GoogleMap mMap;
+    protected static final String LOG_TAG = "MapsActivity";
+    private GPSUpdatesReceiver mGPSUpdatesReceiver;
+    private IntentFilter mFilter;
+    private ServiceConnection mConnection;
+    private GPSLoggingService.LoggingBinder mLoggingServiceBinder;
+    private boolean mBound;
 
-    // Request code for location permission request.
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
-    private boolean mPermissionDenied = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,9 +49,42 @@ public class MapsActivity extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        createAndConnectToGoogleAPIClient();
+        mFilter=new IntentFilter(GPSLoggingService.locationUpdateAction);
+        mGPSUpdatesReceiver = new GPSUpdatesReceiver();
+        mConnection = new GPSLoggingServiceConnection();
+        LocalBroadcastManager.getInstance(this).
+            registerReceiver(mGPSUpdatesReceiver, mFilter);
+        Intent intent= new Intent(this,GPSLoggingService.class);
+        bindService(intent, mConnection, BIND_AUTO_CREATE);
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        if (mBound){
+            mLoggingServiceBinder.getService().stopTracking();
+            unbindService(mConnection);
+            stopService(new Intent(this, GPSLoggingService.class));
+        }
+        super.onStop();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        registerReceiver(mGPSUpdatesReceiver, mFilter);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(mGPSUpdatesReceiver);
+//        stopLocationUpdates();
+    }
 
     /**
      * Manipulates the map once available.
@@ -90,67 +117,15 @@ public class MapsActivity extends AppCompatActivity
         return false;
     }
 
-    /**
-     * Enables the My Location layer if the fine location permission has been granted.
-     */
     private void enableMyLocation() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            // Permission to access the location is missing.
-            PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.ACCESS_FINE_LOCATION, true);
-        } else if (mMap != null) {
-            // Access to the location has been granted to the app.
+        if (mMap != null) {
             mMap.setMyLocationEnabled(true);
-        }
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-//        LatLng coordinates = new LatLng(location.getLatitude(), location.getLongitude());
-//        mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinates));
-
-        Calendar cal = Calendar.getInstance();
-        SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
-
-        TextView txt = (TextView)findViewById(R.id.textView);
-        String output = txt.getText() + "[" + time.format(cal.getTime()) + "] " + String.valueOf(location.getLatitude()) + ", " + String.valueOf(location.getLongitude()) + "\n";
-        txt.setText(output);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
-            return;
-        }
-
-        if (PermissionUtils.isPermissionGranted(permissions, grantResults,
-                Manifest.permission.ACCESS_FINE_LOCATION)) {
-            // Enable the my location layer if the permission has been granted.
-            enableMyLocation();
-        } else {
-            // Display the missing permission error dialog when the fragments resume.
-            mPermissionDenied = true;
         }
     }
 
     @Override
     protected void onResumeFragments() {
         super.onResumeFragments();
-        if (mPermissionDenied) {
-            // Permission was not granted, display error dialog.void
-            showMissingPermissionError();
-            mPermissionDenied = false;
-        }
-    }
-
-    /**
-     * Displays a dialog with error message explaining that the location permission is missing.
-     */
-    private void showMissingPermissionError() {
-        PermissionUtils.PermissionDeniedDialog
-                .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
 
     private void showUWaterlooMarkerOnMap() {
@@ -161,91 +136,43 @@ public class MapsActivity extends AppCompatActivity
 
     }
 
-    private void createAndConnectToGoogleAPIClient() {
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
-        }
-        createLocationRequest();
+    private void updateLocation(Location location){
+        LatLng coordinates = new LatLng(location.getLatitude(), location.getLongitude());
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinates));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(15.0f));
+
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
+        TextView txt = (TextView)findViewById(R.id.textView);
+        String output = txt.getText() + "[" + time.format(cal.getTime()) + "] " + String.valueOf(location.getLatitude()) + ", " + String.valueOf(location.getLongitude()) + "\n";
+        txt.setText(output);
     }
 
-    protected void createLocationRequest() {
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(3000);
-        mLocationRequest.setFastestInterval(3000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-    }
-
-    @Override
-    public void onConnected(Bundle connectionHint) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            // Permission to access the location is missing.
-            PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.ACCESS_FINE_LOCATION, true);
-        } else {
-            Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
-                    mGoogleApiClient);
-            if (mLastLocation != null) {
-                LatLng coordinates = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-                mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinates));
-                mMap.animateCamera(CameraUpdateFactory.zoomTo(15.0f));
-//                showUWaterlooMarkerOnMap();
+    public class GPSUpdatesReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Location location;
+            Bundle extras = intent.getExtras();
+            if(extras != null) {
+                location = (Location) intent.getExtras().get(GPSLoggingService.locationUpdateAction);
+                updateLocation(location);
             }
+            Log.d(LOG_TAG, "GPSUpdatesReceiver: broadcast received " + intent.getExtras());
         }
-        startLocationUpdates();
+
     }
 
-    protected void startLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
+    public class GPSLoggingServiceConnection implements ServiceConnection {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder binder) {
+            mLoggingServiceBinder = (GPSLoggingService.LoggingBinder) binder;
+//            mLocationList = mLoggingServiceBinder.getService().mLocationList;
+            mBound = true;
+//            mLoggingServiceBinder.getService().startTracking();
         }
-        LocationServices.FusedLocationApi.requestLocationUpdates(
-                mGoogleApiClient, mLocationRequest, this);
-    }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (mGoogleApiClient.isConnected()) {
-            startLocationUpdates();
+        public void onServiceDisconnected(ComponentName className) {
+            mBound = false;
         }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        stopLocationUpdates();
-    }
-
-    protected void stopLocationUpdates() {
-        LocationServices.FusedLocationApi.removeLocationUpdates(
-                mGoogleApiClient, this);
-    }
-
-    @Override
-    public void onConnectionSuspended(int cause){}
-
-    @Override
-    public void onConnectionFailed(ConnectionResult result){}
-
-    protected void onStart() {
-        mGoogleApiClient.connect();
-        super.onStart();
-    }
-
-    protected void onStop() {
-        mGoogleApiClient.disconnect();
-        super.onStop();
     }
 }
