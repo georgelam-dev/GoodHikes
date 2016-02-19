@@ -1,11 +1,15 @@
 package ca.uwaterloo.magic.goodhikes;
 
+import android.app.IntentService;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Looper;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -14,7 +18,22 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-public class GPSLoggingService extends Service
+/**
+ * IntentService is usually used as a background worker thread.
+ * Work is supplied to the thread by sending Intents to it context.startService(intent),
+ * which in turn calls onHandleIntent(Intent intent). Only one worker thread is running -
+ * if the service is already performing a task next Intent execution will be queued.
+ *
+ * This is really not what we want with GPSLoggingService - all we want is to start GPSUpdates
+ * in the background, and be able to start/stop updates logging.
+ * But as IntentService executes in a separate thread, I've reused it.
+ *
+ * We are starting the service with startLocationUpdates() which sends an initializing Intent to the service.
+ * Then we retrieve a handle to the service (mLoggingServiceBinder) by binding to the service in the client:
+ * bindService(intent, mConnection, BIND_AUTO_CREATE);
+ * We use this handle to start/stop the updates.
+ */
+public class GPSLoggingService extends IntentService
         implements
         LocationListener,
         GoogleApiClient.ConnectionCallbacks,
@@ -22,10 +41,15 @@ public class GPSLoggingService extends Service
 
     protected static final String LOG_TAG = "GPSLoggingService";
     protected GoogleApiClient mGoogleApiClient;
-    private boolean mGoogleApiClientConnected=false;
     protected LocationRequest mLocationRequest;
+    public static final String startLocationUpdates = "ca.uwaterloo.magic.goodhikes.location.update.start";
     public static final String locationUpdateAction = "ca.uwaterloo.magic.goodhikes.location.update";
     private final IBinder mBinder = new LoggingBinder();
+    private Looper mLooper;
+
+    public GPSLoggingService() {
+        super(GPSLoggingService.class.toString());
+    }
 
     /**
      * Class for clients to access.  Because we know this service always
@@ -42,13 +66,31 @@ public class GPSLoggingService extends Service
         return mBinder;
     }
 
+    public static void startLocationUpdatesService(Context context) {
+        Intent intent = new Intent(context, GPSLoggingService.class);
+        intent.setAction(startLocationUpdates);
+        context.startService(intent);
+    }
+
+    @Override
+    protected void onHandleIntent(Intent intent) {
+        if (intent != null) {
+            final String action = intent.getAction();
+            if (action.equals(startLocationUpdates)) {
+                createGoogleAPIClient();
+                createLocationRequest();
+                mGoogleApiClient.connect();
+                mLooper = Looper.myLooper();
+//                Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() +
+//                    "; Thread looper" + mLooper.toString() + "; Connection to google API");
+            }
+        }
+    }
+
     @Override
     public void onCreate() {
 //        android.os.Debug.waitForDebugger();
         super.onCreate();
-        createGoogleAPIClient();
-        createLocationRequest();
-        mGoogleApiClient.connect();
     }
 
 
@@ -83,6 +125,7 @@ public class GPSLoggingService extends Service
             Location broadcastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
             broadcastLocation(broadcastLocation);
             startLocationUpdates();
+//            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Starting location updates");
         }
     }
 
@@ -90,14 +133,8 @@ public class GPSLoggingService extends Service
         if (mGoogleApiClient.isConnected()) {
             stopLocationUpdates();
             mGoogleApiClient.disconnect();
+//            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Stopped location updates");
         }
-    }
-
-    public void resumeTracking() {
-    }
-
-    public void pauseTracking() {
-        stopLocationUpdates();
     }
 
     /*
@@ -107,7 +144,6 @@ public class GPSLoggingService extends Service
     */
     @Override
     public void onConnected(Bundle connectionHint) {
-        mGoogleApiClientConnected=true;
         startTracking();
     }
 
@@ -123,7 +159,7 @@ public class GPSLoggingService extends Service
 
     protected void startLocationUpdates() {
         LocationServices.FusedLocationApi.requestLocationUpdates(
-                mGoogleApiClient, mLocationRequest, this);
+                mGoogleApiClient, mLocationRequest, this, mLooper);
     }
 
     protected void stopLocationUpdates() {
@@ -137,8 +173,9 @@ public class GPSLoggingService extends Service
     }
 
     private void broadcastLocation(Location location){
+//        Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Sending location update");
         Intent intent= new Intent(locationUpdateAction);
         intent.putExtra(locationUpdateAction, location);
-        sendBroadcast(intent);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 }

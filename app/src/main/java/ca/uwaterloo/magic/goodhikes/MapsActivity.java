@@ -48,26 +48,32 @@ public class MapsActivity extends AppCompatActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-        mFilter=new IntentFilter(GPSLoggingService.locationUpdateAction);
-        mGPSUpdatesReceiver = new GPSUpdatesReceiver();
-        mConnection = new GPSLoggingServiceConnection();
-        LocalBroadcastManager.getInstance(this).
-            registerReceiver(mGPSUpdatesReceiver, mFilter);
-        Intent intent= new Intent(this,GPSLoggingService.class);
-        bindService(intent, mConnection, BIND_AUTO_CREATE);
     }
 
+    /**
+     * onCreate() is called only once for Activity, whereas onStart() - each time
+     * appActivity is hidden from screen (user uses other apps), and then App is activated again.
+     */
     @Override
     protected void onStart() {
         super.onStart();
+        mFilter=new IntentFilter(GPSLoggingService.locationUpdateAction);
+        mGPSUpdatesReceiver = new GPSUpdatesReceiver();
+        mConnection = new GPSLoggingServiceConnection();
+        LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
+        Intent intent= new Intent(this,GPSLoggingService.class);
+        bindService(intent, mConnection, BIND_AUTO_CREATE);
+//        Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Binding to service");
+        GPSLoggingService.startLocationUpdatesService(this);
     }
 
     @Override
     protected void onStop() {
         if (mBound){
             mLoggingServiceBinder.getService().stopTracking();
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
             unbindService(mConnection);
+            mBound=false;
             stopService(new Intent(this, GPSLoggingService.class));
         }
         super.onStop();
@@ -76,14 +82,11 @@ public class MapsActivity extends AppCompatActivity
     @Override
     public void onResume() {
         super.onResume();
-        registerReceiver(mGPSUpdatesReceiver, mFilter);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(mGPSUpdatesReceiver);
-//        stopLocationUpdates();
     }
 
     /**
@@ -157,7 +160,7 @@ public class MapsActivity extends AppCompatActivity
                 location = (Location) intent.getExtras().get(GPSLoggingService.locationUpdateAction);
                 updateLocation(location);
             }
-            Log.d(LOG_TAG, "GPSUpdatesReceiver: broadcast received " + intent.getExtras());
+//            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; broadcast received");
         }
 
     }
@@ -166,9 +169,7 @@ public class MapsActivity extends AppCompatActivity
         @Override
         public void onServiceConnected(ComponentName className, IBinder binder) {
             mLoggingServiceBinder = (GPSLoggingService.LoggingBinder) binder;
-//            mLocationList = mLoggingServiceBinder.getService().mLocationList;
             mBound = true;
-//            mLoggingServiceBinder.getService().startTracking();
         }
 
         public void onServiceDisconnected(ComponentName className) {
