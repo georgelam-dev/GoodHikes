@@ -11,7 +11,9 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
+import android.support.design.widget.FloatingActionButton;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,8 +39,7 @@ public class MapsActivity extends AppCompatActivity
     private IntentFilter mFilter;
     private ServiceConnection mConnection;
     private GPSLoggingService.LoggingBinder mLoggingServiceBinder;
-    private boolean mBound;
-
+    private FloatingActionButton mGPSTrackingButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,46 +49,66 @@ public class MapsActivity extends AppCompatActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        mGPSTrackingButton = (FloatingActionButton) findViewById(R.id.gps_tracking_control_button);
+        attachUICallbacks();
     }
 
     /**
      * onCreate() is called only once for Activity, whereas onStart() - each time
      * appActivity is hidden from screen (user uses other apps), and then App is activated again.
+     *
+     * Using startService() overrides the default service lifetime that is managed by
+     * bindService(Intent, ServiceConnection, int): it requires the service to remain running
+     * until stopService(Intent) is called, regardless of whether any clients are connected to it.
      */
     @Override
     protected void onStart() {
         super.onStart();
-        if(!mBound) {
-            mFilter = new IntentFilter(GPSLoggingService.locationUpdateAction);
-            mGPSUpdatesReceiver = new GPSUpdatesReceiver();
-            mConnection = new GPSLoggingServiceConnection();
-            LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
-            Intent intent = new Intent(this, GPSLoggingService.class);
-            bindService(intent, mConnection, BIND_AUTO_CREATE);
-//            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Binding to service");
-        }
+        mFilter = new IntentFilter(GPSLoggingService.locationUpdateCommand);
+        mGPSUpdatesReceiver = new GPSUpdatesReceiver();
+        mConnection = new GPSLoggingServiceConnection();
+        LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
+        startService(new Intent(this, GPSLoggingService.class));
+        Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; MapActivity started");
     }
 
     @Override
     protected void onStop() {
-        if (mBound){
-            mLoggingServiceBinder.getService().stopTracking();
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
-            unbindService(mConnection);
-            mBound=false;
-            stopService(new Intent(this, GPSLoggingService.class));
-        }
         super.onStop();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        Intent intent = new Intent(this, GPSLoggingService.class);
+        bindService(intent, mConnection, BIND_AUTO_CREATE);
+        Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Binding to service");
     }
 
+    /*
+    * Unbinding GPS service in onPause, so that there are always matching pairs of bind/unbind calls.
+    * */
     @Override
     protected void onPause() {
         super.onPause();
+        unbindService(mConnection);
+        Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Unbinding from GPS service");
+    }
+
+    /*
+    * When GPSLoggingService starts it has it's own lifecycle independent of the Activity that started it.
+    * This means that GPSLoggingService will be running even if user switches to another app for a bit,
+    * or even simply rotates the screen.
+    * GPS tracking logging runs in a separate LoopingThread within GPSLoggingService,
+    * and tracking should continue running in the background, even if the app is put in the background.
+    * */
+    public void stopGPSLoggingService(){
+            mLoggingServiceBinder.getService().stopLocationTracking();
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
+            unbindService(mConnection);
+            stopService(new Intent(this, GPSLoggingService.class));
     }
 
     /**
@@ -158,10 +179,10 @@ public class MapsActivity extends AppCompatActivity
             Location location;
             Bundle extras = intent.getExtras();
             if(extras != null) {
-                location = (Location) intent.getExtras().get(GPSLoggingService.locationUpdateAction);
+                location = (Location) intent.getExtras().get(GPSLoggingService.locationUpdateCommand);
                 updateLocation(location);
             }
-//            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; broadcast received");
+            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Location update received by UI");
         }
 
     }
@@ -170,11 +191,39 @@ public class MapsActivity extends AppCompatActivity
         @Override
         public void onServiceConnected(ComponentName className, IBinder binder) {
             mLoggingServiceBinder = (GPSLoggingService.LoggingBinder) binder;
-            mBound = true;
+            setTrackingButtonIcon();
+            mLoggingServiceBinder.getService().broadcastLastKnownLocation();
+
         }
 
         public void onServiceDisconnected(ComponentName className) {
-            mBound = false;
+        }
+    }
+
+    private void attachUICallbacks(){
+        mGPSTrackingButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mLoggingServiceBinder!=null) {
+                    if (!mLoggingServiceBinder.getService().isTrackingActive()) {
+                        mLoggingServiceBinder.getService().startLocationTracking();
+                        mGPSTrackingButton.setImageResource(R.drawable.ampelmann_red);
+                    } else {
+                        mLoggingServiceBinder.getService().stopLocationTracking();
+                        mGPSTrackingButton.setImageResource(R.drawable.ampelmann_green);
+                    }
+                }
+            }
+        });
+    }
+
+    private void setTrackingButtonIcon(){
+        if(mLoggingServiceBinder!=null) {
+            if (mLoggingServiceBinder.getService().isTrackingActive()) {
+                mGPSTrackingButton.setImageResource(R.drawable.ampelmann_red);
+            } else {
+                mGPSTrackingButton.setImageResource(R.drawable.ampelmann_green);
+            }
         }
     }
 }

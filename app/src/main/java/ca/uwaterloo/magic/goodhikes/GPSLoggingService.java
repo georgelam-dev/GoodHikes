@@ -1,14 +1,14 @@
 package ca.uwaterloo.magic.goodhikes;
 
-import android.app.IntentService;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.Message;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -27,26 +27,42 @@ public class GPSLoggingService extends Service
     protected static final String LOG_TAG = "GPSLoggingService";
     protected GoogleApiClient mGoogleApiClient;
     protected LocationRequest mLocationRequest;
-    public static final String locationUpdateAction = "ca.uwaterloo.magic.goodhikes.location.update";
+    public static final String locationUpdateCommand = "ca.uwaterloo.magic.goodhikes.location.update";
     private final IBinder mBinder = new LoggingBinder();
+    private LooperThread internalLooperThread;
+    private boolean mTrackingIsActive=false;
 
-    private Looper mLooper;
-    private LooperThread mLooperThread;
-    class LooperThread extends Thread {
-        public void run() {
-            Looper.prepare();
-            mLooper = Looper.myLooper();
-//            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() +
-//                    "; Thread looper" + mLooper.toString() + "; Created a runner thread");
-            startTracking();
-            Looper.loop();
+    private static class GPSTrackingCommands {
+        public static final String START = "ca.uwaterloo.magic.goodhikes.location.update.start";
+        public static final String STOP = "ca.uwaterloo.magic.goodhikes.location.update.stop";
+    }
+
+    public void startLocationTracking() {
+        sendCommandToLooperThread(new Intent(GPSTrackingCommands.START));
+    }
+
+    public void stopLocationTracking() {
+        sendCommandToLooperThread(new Intent(GPSTrackingCommands.STOP));
+    }
+
+    private void sendCommandToLooperThread(Intent command){
+        if(internalLooperThread!=null) {
+            Message msg = internalLooperThread.mLooperThreadHandler.obtainMessage();
+            msg.obj = command;
+            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() +
+                    "; Sending "+command.getAction()+" command to looper thread");
+            internalLooperThread.mLooperThreadHandler.sendMessage(msg);
         }
     }
 
-    /**
-     * Class for clients to access.  Because we know this service always
-     * runs in the same process as its clients, we don't need to deal with IPC.
-     */
+    public boolean isTrackingActive() {
+        return mTrackingIsActive;
+    }
+
+    public void setTrackingStatus(boolean mTrackingIsActive) {
+        this.mTrackingIsActive = mTrackingIsActive;
+    }
+
     public class LoggingBinder extends Binder {
         GPSLoggingService getService() {
             return GPSLoggingService.this;
@@ -65,17 +81,24 @@ public class GPSLoggingService extends Service
         createGoogleAPIClient();
         createLocationRequest();
         mGoogleApiClient.connect();
-//        Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId()+"; Connection to google API");
+        Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Started GPS tracking service");
     }
 
+    public void stopService() {
+        if(mGoogleApiClient.isConnected()) {
+            stopLocationTracking();
+            mGoogleApiClient.disconnect();
+        }
+        if(internalLooperThread.mLooper!=null){
+            internalLooperThread.mLooper.quit();
+            internalLooperThread.interrupt();
+        }
+            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Stopped GPS tracking service");
+    }
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        if (mGoogleApiClient.isConnected()) {
-            stopLocationUpdates();
-            mGoogleApiClient.disconnect();
-        }
+        stopService();
     }
 
     private void createGoogleAPIClient() {
@@ -95,23 +118,20 @@ public class GPSLoggingService extends Service
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
-    public void startTracking() {
-        if (mGoogleApiClient.isConnected() && mLooper!=null) {
-            Location broadcastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-            broadcastLocation(broadcastLocation);
-            startLocationUpdates();
-//            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Starting location updates");
+    private void startLocationTrackingInLooperThread() {
+        if (mGoogleApiClient.isConnected() && internalLooperThread.mLooper!=null) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(
+                    mGoogleApiClient, mLocationRequest, this, internalLooperThread.mLooper);
+            mTrackingIsActive=true;
+            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Starting location tracking in looper thread");
         }
     }
 
-    public void stopTracking() {
-        if (mGoogleApiClient.isConnected()) {
-            stopLocationUpdates();
-            mGoogleApiClient.disconnect();
-            mLooper.quit();
-            mLooperThread.interrupt();
-//            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Stopped location updates");
-        }
+    private void stopLocationTrackingInLooperThread() {
+        LocationServices.FusedLocationApi.removeLocationUpdates(
+                mGoogleApiClient, this);
+        mTrackingIsActive=false;
+        Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Stopped location tracking in looper thread");
     }
 
     /*
@@ -121,8 +141,9 @@ public class GPSLoggingService extends Service
     */
     @Override
     public void onConnected(Bundle connectionHint) {
-        mLooperThread = new LooperThread();
-        mLooperThread.start();
+        broadcastLastKnownLocation();
+        internalLooperThread = new LooperThread();
+        internalLooperThread.start();
     }
 
     @Override
@@ -135,25 +156,51 @@ public class GPSLoggingService extends Service
         Log.i(LOG_TAG, "GoogleApiClient connection has failed");
     }
 
-    protected void startLocationUpdates() {
-        LocationServices.FusedLocationApi.requestLocationUpdates(
-                mGoogleApiClient, mLocationRequest, this, mLooper);
-    }
-
-    protected void stopLocationUpdates() {
-        LocationServices.FusedLocationApi.removeLocationUpdates(
-                mGoogleApiClient, this);
-    }
-
     @Override
     public void onLocationChanged(Location location) {
         broadcastLocation(location);
     }
 
     private void broadcastLocation(Location location){
-//        Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Sending location update");
-        Intent intent= new Intent(locationUpdateAction);
-        intent.putExtra(locationUpdateAction, location);
+        Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Sending location update");
+        Intent intent= new Intent(locationUpdateCommand);
+        intent.putExtra(locationUpdateCommand, location);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    public void broadcastLastKnownLocation(){
+        if(mGoogleApiClient.isConnected()) {
+            Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            broadcastLocation(location);
+        }
+    }
+
+    class LooperThread extends Thread {
+        private Looper mLooper;
+        private Handler mLooperThreadHandler;
+        public void run() {
+            Looper.prepare();
+            mLooper = Looper.myLooper();
+
+            mLooperThreadHandler = new Handler() {
+                public void handleMessage(Message msg) {
+                    if (msg.obj != null && msg.obj instanceof Intent) {
+                        onHandleIntent((Intent) msg.obj);
+                    }
+                }
+            };
+            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() +
+                    "; Thread looper" + mLooper.toString() + "; Created a runner thread");
+            Looper.loop();
+        }
+    }
+
+    private void onHandleIntent(Intent intent) {
+        if(intent.getAction()==GPSTrackingCommands.START) {
+            startLocationTrackingInLooperThread();
+        }else if(intent.getAction()==GPSTrackingCommands.STOP){
+            stopLocationTrackingInLooperThread();
+        }
+
     }
 }
