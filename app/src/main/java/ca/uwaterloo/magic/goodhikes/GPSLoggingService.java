@@ -31,6 +31,7 @@ public class GPSLoggingService extends Service
     private final IBinder mBinder = new LoggingBinder();
     private LooperThread internalLooperThread;
     private boolean mTrackingIsActive=false;
+    public RouteTrace currentRouteTrace = new RouteTrace();
 
     private static class GPSTrackingCommands {
         public static final String START = "ca.uwaterloo.magic.goodhikes.location.update.start";
@@ -123,6 +124,7 @@ public class GPSLoggingService extends Service
             LocationServices.FusedLocationApi.requestLocationUpdates(
                     mGoogleApiClient, mLocationRequest, this, internalLooperThread.mLooper);
             mTrackingIsActive=true;
+            currentRouteTrace.clearTrace();
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Starting location tracking in looper thread");
         }
     }
@@ -158,6 +160,7 @@ public class GPSLoggingService extends Service
 
     @Override
     public void onLocationChanged(Location location) {
+        currentRouteTrace.addPoint(location);
         broadcastLocation(location);
     }
 

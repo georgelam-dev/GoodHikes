@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -23,7 +24,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -38,8 +42,11 @@ public class MapsActivity extends AppCompatActivity
     private GPSUpdatesReceiver mGPSUpdatesReceiver;
     private IntentFilter mFilter;
     private ServiceConnection mConnection;
-    private GPSLoggingService.LoggingBinder mLoggingServiceBinder;
+    private GPSLoggingService mLoggingService;
     private FloatingActionButton mGPSTrackingButton;
+    private RouteTrace currentRouteTrace;
+    private Polyline visualRouteTrace;
+    private Marker initRoutePointMarker, lastRoutePointMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,10 +112,10 @@ public class MapsActivity extends AppCompatActivity
     * and tracking should continue running in the background, even if the app is put in the background.
     * */
     public void stopGPSLoggingService(){
-            mLoggingServiceBinder.getService().stopLocationTracking();
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
-            unbindService(mConnection);
-            stopService(new Intent(this, GPSLoggingService.class));
+        mLoggingService.stopLocationTracking();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
+        unbindService(mConnection);
+        stopService(new Intent(this, GPSLoggingService.class));
     }
 
     /**
@@ -132,6 +139,7 @@ public class MapsActivity extends AppCompatActivity
 
         mMap.setOnMyLocationButtonClickListener(this);
         enableMyLocation();
+        initVisualTrace();
     }
 
     @Override
@@ -182,6 +190,7 @@ public class MapsActivity extends AppCompatActivity
                 location = (Location) intent.getExtras().get(GPSLoggingService.locationUpdateCommand);
                 updateLocation(location);
             }
+            drawTrace();
             Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Location update received by UI");
         }
 
@@ -190,9 +199,10 @@ public class MapsActivity extends AppCompatActivity
     public class GPSLoggingServiceConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName className, IBinder binder) {
-            mLoggingServiceBinder = (GPSLoggingService.LoggingBinder) binder;
+            mLoggingService = ((GPSLoggingService.LoggingBinder) binder).getService();
             setTrackingButtonIcon();
-            mLoggingServiceBinder.getService().broadcastLastKnownLocation();
+            currentRouteTrace = mLoggingService.currentRouteTrace;
+            mLoggingService.broadcastLastKnownLocation();
 
         }
 
@@ -204,12 +214,13 @@ public class MapsActivity extends AppCompatActivity
         mGPSTrackingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mLoggingServiceBinder!=null) {
-                    if (!mLoggingServiceBinder.getService().isTrackingActive()) {
-                        mLoggingServiceBinder.getService().startLocationTracking();
+                if(mLoggingService!=null) {
+                    if (!mLoggingService.isTrackingActive()) {
+                        mLoggingService.startLocationTracking();
                         mGPSTrackingButton.setImageResource(R.drawable.ampelmann_red);
+                        clearMap();
                     } else {
-                        mLoggingServiceBinder.getService().stopLocationTracking();
+                        mLoggingService.stopLocationTracking();
                         mGPSTrackingButton.setImageResource(R.drawable.ampelmann_green);
                     }
                 }
@@ -218,12 +229,46 @@ public class MapsActivity extends AppCompatActivity
     }
 
     private void setTrackingButtonIcon(){
-        if(mLoggingServiceBinder!=null) {
-            if (mLoggingServiceBinder.getService().isTrackingActive()) {
+        if(mLoggingService!=null) {
+            if (mLoggingService.isTrackingActive()) {
                 mGPSTrackingButton.setImageResource(R.drawable.ampelmann_red);
             } else {
                 mGPSTrackingButton.setImageResource(R.drawable.ampelmann_green);
             }
+        }
+    }
+
+    private void initVisualTrace(){
+        PolylineOptions traceOptions = new PolylineOptions();
+        traceOptions.color(Color.BLUE);
+        visualRouteTrace = mMap.addPolyline(traceOptions);
+        visualRouteTrace.setVisible(true);
+    }
+
+    private void drawTrace(){
+        if(currentRouteTrace==null) return;
+        visualRouteTrace.setPoints(currentRouteTrace.getPointsCoordinates());
+
+        if(currentRouteTrace.size()>0 && initRoutePointMarker==null){
+            initRoutePointMarker = mMap.addMarker(
+                    new MarkerOptions().position(currentRouteTrace.getStartCoordinates()).title("Start"));
+        }
+
+        if (currentRouteTrace.size()>1){
+            if(lastRoutePointMarker!=null) lastRoutePointMarker.remove();
+            lastRoutePointMarker =  mMap.addMarker(
+                    new MarkerOptions().position(currentRouteTrace.getLastCoordinates()).title("Current Position"));
+        }
+    }
+
+    private void clearMap(){
+        if(initRoutePointMarker!=null){
+            initRoutePointMarker.remove();
+            initRoutePointMarker=null;
+        }
+        if(lastRoutePointMarker!=null){
+            lastRoutePointMarker.remove();
+            lastRoutePointMarker=null;
         }
     }
 }
