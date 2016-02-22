@@ -8,4 +8,7 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <!-- SettingsActivity, make child node -->
+    <style name="SettingsTheme" parent="AppTheme"></style>
+
 </resources>

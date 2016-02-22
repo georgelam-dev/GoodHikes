@@ -7,13 +7,17 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Color;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.design.widget.FloatingActionButton;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -69,6 +73,36 @@ public class MapsActivity extends AppCompatActivity
      * bindService(Intent, ServiceConnection, int): it requires the service to remain running
      * until stopService(Intent) is called, regardless of whether any clients are connected to it.
      */
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void updateMapType() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        int map_type = Integer.parseInt(prefs.getString
+                (getString(R.string.map_pref),
+                        getString(R.string.map_type_default)));
+        System.out.println(map_type);
+        mMap.setMapType(map_type);
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -78,6 +112,7 @@ public class MapsActivity extends AppCompatActivity
         LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
         startService(new Intent(this, GPSLoggingService.class));
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; MapActivity started");
+
     }
 
     @Override
@@ -92,6 +127,12 @@ public class MapsActivity extends AppCompatActivity
         Intent intent = new Intent(this, GPSLoggingService.class);
         bindService(intent, mConnection, BIND_AUTO_CREATE);
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Binding to service");
+        if(mMap != null) {
+            updateMapType();
+        }
+        if(mLoggingService != null) {
+            mLoggingService.updateGPSfrequency();
+        }
     }
 
     /*
@@ -135,8 +176,7 @@ public class MapsActivity extends AppCompatActivity
         settings.setMapToolbarEnabled(true);
         settings.setScrollGesturesEnabled(true);
         settings.setZoomControlsEnabled(true);
-        mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
-
+        updateMapType();
         mMap.setOnMyLocationButtonClickListener(this);
         enableMyLocation();
         initVisualTrace();

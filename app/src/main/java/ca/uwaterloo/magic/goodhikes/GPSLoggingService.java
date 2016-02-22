@@ -2,6 +2,7 @@ package ca.uwaterloo.magic.goodhikes;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Binder;
 import android.os.Bundle;
@@ -9,6 +10,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -94,7 +96,7 @@ public class GPSLoggingService extends Service
             internalLooperThread.mLooper.quit();
             internalLooperThread.interrupt();
         }
-            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Stopped GPS tracking service");
+            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Stopped GPS tracking service");
     }
 
     @Override
@@ -114,9 +116,21 @@ public class GPSLoggingService extends Service
 
     private void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(3000);
-        mLocationRequest.setFastestInterval(3000);
+        updateGPSfrequency();
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    //Settings: Change GPS Update Frequency
+    public void updateGPSfrequency() {
+        if (mLocationRequest != null) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            int gps_frequency = Integer.parseInt(prefs.getString
+                    (getString(R.string.interval_pref),
+                            getString(R.string.interval_pref_default)));
+            System.out.println("update freq:" + gps_frequency);
+            mLocationRequest.setInterval(gps_frequency);
+            mLocationRequest.setFastestInterval(gps_frequency);
+        }
     }
 
     private void startLocationTrackingInLooperThread() {

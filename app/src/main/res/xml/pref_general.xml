@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Map type settings -->
+    <ListPreference
+        android:key="@string/map_pref"
+        android:title="Configure Map Type"
+        android:entries="@array/map_types"
+        android:entryValues="@array/map_type_values"
+        android:defaultValue="2"/>
+
+    <!-- Update frequency settings -->
+    <ListPreference
+        android:key="@string/interval_pref"
+        android:title="Configure GPS Update Frequency"
+        android:entries="@array/update_frequency"
+        android:entryValues="@array/update_frequency_values"
+        android:defaultValue="3000"/>
+
+</PreferenceScreen>
