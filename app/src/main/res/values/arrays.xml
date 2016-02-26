@@ -37,4 +37,17 @@
         <item>600000</item>
     </string-array>
 
+    <!-- History: DUMMY values -->
+    <string-array name="history_dummies">
+        <item>History 1</item>
+        <item>History 2</item>
+        <item>History 3</item>
+        <item>History 4</item>
+        <item>History 5</item>
+        <item>History 6</item>
+        <item>History 7</item>
+        <item>History 8</item>
+        <item>History 9</item>
+        <item>History 10</item>
+    </string-array>
 </resources>

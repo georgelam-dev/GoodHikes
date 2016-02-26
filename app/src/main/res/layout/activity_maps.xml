@@ -14,9 +14,19 @@
         android:layout_height="439dp"
         tools:context="ca.uwaterloo.magic.goodhikes.MapsActivity" />
 
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/gps_tracking_control_button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:scaleType="center"
+        app:backgroundTint="@color/black"
+        android:src="@drawable/ampelmann_green"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+
     <ScrollView
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_height="0dp"
         android:layout_below="@+id/map"
         android:id="@+id/scrollView"
         android:layout_gravity="center_horizontal|bottom"
@@ -29,15 +39,5 @@
             android:layout_gravity="center_horizontal|bottom"
             android:linksClickable="false" />
     </ScrollView>
-
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/gps_tracking_control_button"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:scaleType="center"
-        app:backgroundTint="@color/black"
-        android:src="@drawable/ampelmann_green" />
 
 </RelativeLayout>

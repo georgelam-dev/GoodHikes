@@ -73,7 +73,7 @@ public class MapsActivity extends AppCompatActivity
      * bindService(Intent, ServiceConnection, int): it requires the service to remain running
      * until stopService(Intent) is called, regardless of whether any clients are connected to it.
      */
-
+/*
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -93,7 +93,7 @@ public class MapsActivity extends AppCompatActivity
         }
         return super.onOptionsItemSelected(item);
     }
-
+*/
     public void updateMapType() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         int map_type = Integer.parseInt(prefs.getString
