@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">GoodHikes</string>
-    <string name="title_activity_login">Sign In</string>
     <string name="title_activity_maps">Map</string>
     <string name="google_app_id">ferrous-linker-121901</string>
 
@@ -15,6 +14,7 @@
     <!--    Setting Labels    -->
     <string name="map_pref">Map Types</string>
     <string name="interval_pref">Interval</string>
+    <string name="logout">Logout</string>
 
     <!-- Default Map Type Hybrid -->
     <string name="map_type_default">3</string>
@@ -34,7 +34,9 @@
     <string name="permission_rationale">"Contacts permissions are needed for providing email
         completions."
     </string>
-    <string name="title_history_list">HistoryItems</string>
-    <string name="title_history_detail">History Detail</string>
+
+    <!-- Info Section in MapsActivity -->
+    <string name="duration_label">Duration</string>
+    <string name="distance_label">Distance</string>
 
 </resources>

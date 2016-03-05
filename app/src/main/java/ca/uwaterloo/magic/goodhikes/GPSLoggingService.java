@@ -99,10 +99,10 @@ public class GPSLoggingService extends Service
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Stopped GPS tracking service");
     }
 
-    @Override
-    public void onDestroy() {
-        stopService();
-    }
+        @Override
+        public void onDestroy() {
+            stopService();
+        }
 
     private void createGoogleAPIClient() {
         if (mGoogleApiClient == null) {

@@ -4,7 +4,7 @@
     <!-- Map type settings -->
     <ListPreference
         android:key="@string/map_pref"
-        android:title="Configure Map Type"
+        android:title="Map Type"
         android:entries="@array/map_types"
         android:entryValues="@array/map_type_values"
         android:defaultValue="2"/>
@@ -12,9 +12,14 @@
     <!-- Update frequency settings -->
     <ListPreference
         android:key="@string/interval_pref"
-        android:title="Configure GPS Update Frequency"
+        android:title="Location Update Frequency"
         android:entries="@array/update_frequency"
         android:entryValues="@array/update_frequency_values"
         android:defaultValue="3000"/>
+
+    <!-- Logout button -->
+    <Preference
+        android:key="@string/logout"
+        android:title="Logout" />
 
 </PreferenceScreen>
