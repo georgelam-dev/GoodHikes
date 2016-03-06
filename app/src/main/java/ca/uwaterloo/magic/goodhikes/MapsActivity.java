@@ -6,20 +6,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.graphics.Color;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
-import android.support.design.widget.FloatingActionButton;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -33,8 +30,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.text.DateFormat;
+import java.util.Date;
 
 public class MapsActivity extends AppCompatActivity
         implements
@@ -47,23 +44,10 @@ public class MapsActivity extends AppCompatActivity
     private IntentFilter mFilter;
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
-    private FloatingActionButton mGPSTrackingButton;
+    private FloatingActionButton mGPSTrackingButton, mSettingsButton, mHistoryButton, mBackButton;
     private RouteTrace currentRouteTrace;
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-
-        mGPSTrackingButton = (FloatingActionButton) findViewById(R.id.gps_tracking_control_button);
-        attachUICallbacks();
-    }
 
     /**
      * onCreate() is called only once for Activity, whereas onStart() - each time
@@ -73,33 +57,31 @@ public class MapsActivity extends AppCompatActivity
      * bindService(Intent, ServiceConnection, int): it requires the service to remain running
      * until stopService(Intent) is called, regardless of whether any clients are connected to it.
      */
-/*
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            startActivity(new Intent(this, SettingsActivity.class));
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_maps);
+
+        //Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
+
+        //Create and attach listeners to buttons
+        mSettingsButton = (FloatingActionButton) findViewById(R.id.settings_button);
+        mHistoryButton = (FloatingActionButton) findViewById(R.id.history_button);
+        mGPSTrackingButton = (FloatingActionButton) findViewById(R.id.gps_tracking_control_button);
+        attachUICallbacks();
     }
-*/
+
+    //updateMapType changes the map type when the setting is changed.
+
     public void updateMapType() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         int map_type = Integer.parseInt(prefs.getString
                 (getString(R.string.map_pref),
                         getString(R.string.map_type_default)));
-        System.out.println(map_type);
         mMap.setMapType(map_type);
     }
 
@@ -112,7 +94,6 @@ public class MapsActivity extends AppCompatActivity
         LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
         startService(new Intent(this, GPSLoggingService.class));
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; MapActivity started");
-
     }
 
     @Override
@@ -130,14 +111,12 @@ public class MapsActivity extends AppCompatActivity
         if(mMap != null) {
             updateMapType();
         }
-        if(mLoggingService != null) {
-            mLoggingService.updateGPSfrequency();
-        }
     }
 
     /*
     * Unbinding GPS service in onPause, so that there are always matching pairs of bind/unbind calls.
     * */
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -152,6 +131,7 @@ public class MapsActivity extends AppCompatActivity
     * GPS tracking logging runs in a separate LoopingThread within GPSLoggingService,
     * and tracking should continue running in the background, even if the app is put in the background.
     * */
+
     public void stopGPSLoggingService(){
         mLoggingService.stopLocationTracking();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
@@ -167,17 +147,15 @@ public class MapsActivity extends AppCompatActivity
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
      */
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
         UiSettings settings = mMap.getUiSettings();
         settings.setCompassEnabled(true);
         settings.setMapToolbarEnabled(true);
         settings.setScrollGesturesEnabled(true);
-        settings.setZoomControlsEnabled(true);
         updateMapType();
-        mMap.setOnMyLocationButtonClickListener(this);
         enableMyLocation();
         initVisualTrace();
     }
@@ -201,24 +179,14 @@ public class MapsActivity extends AppCompatActivity
         super.onResumeFragments();
     }
 
-    private void showUWaterlooMarkerOnMap() {
-        // UWaterloo: 43.4689° N, 80.5400° W; Davis Centre: 43.472761	-80.542164
-        LatLng waterloo = new LatLng(43.472761, -80.542164);
-        mMap.addMarker(new MarkerOptions().position(waterloo).title("University of Waterloo"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(waterloo));
-
-    }
-
     private void updateLocation(Location location){
+        mLoggingService.updateGPSfrequency();
         LatLng coordinates = new LatLng(location.getLatitude(), location.getLongitude());
         mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinates));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(15.0f));
 
-        Calendar cal = Calendar.getInstance();
-        SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
-        TextView txt = (TextView)findViewById(R.id.textView);
-        String output = txt.getText() + "[" + time.format(cal.getTime()) + "] " + String.valueOf(location.getLatitude()) + ", " + String.valueOf(location.getLongitude()) + "\n";
-        txt.setText(output);
+        String mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+        System.out.println("location update:" + mLastUpdateTime);
     }
 
     public class GPSUpdatesReceiver extends BroadcastReceiver {
@@ -245,9 +213,7 @@ public class MapsActivity extends AppCompatActivity
             mLoggingService.broadcastLastKnownLocation();
 
         }
-
-        public void onServiceDisconnected(ComponentName className) {
-        }
+        public void onServiceDisconnected(ComponentName className) {}
     }
 
     private void attachUICallbacks(){
@@ -257,13 +223,25 @@ public class MapsActivity extends AppCompatActivity
                 if(mLoggingService!=null) {
                     if (!mLoggingService.isTrackingActive()) {
                         mLoggingService.startLocationTracking();
-                        mGPSTrackingButton.setImageResource(R.drawable.ampelmann_red);
+                        mGPSTrackingButton.setImageResource(R.drawable.ic_pause_white_18dp);
                         clearMap();
                     } else {
                         mLoggingService.stopLocationTracking();
-                        mGPSTrackingButton.setImageResource(R.drawable.ampelmann_green);
+                        mGPSTrackingButton.setImageResource(R.drawable.ic_directions_run_white_18dp);
                     }
                 }
+            }
+        });
+        mSettingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
+            }
+        });
+        mHistoryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(getApplicationContext(), HistoryActivity.class));
             }
         });
     }
@@ -271,9 +249,9 @@ public class MapsActivity extends AppCompatActivity
     private void setTrackingButtonIcon(){
         if(mLoggingService!=null) {
             if (mLoggingService.isTrackingActive()) {
-                mGPSTrackingButton.setImageResource(R.drawable.ampelmann_red);
+                mGPSTrackingButton.setImageResource(R.drawable.ic_pause_white_18dp);
             } else {
-                mGPSTrackingButton.setImageResource(R.drawable.ampelmann_green);
+                mGPSTrackingButton.setImageResource(R.drawable.ic_directions_run_white_18dp);
             }
         }
     }

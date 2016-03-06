@@ -22,9 +22,7 @@
         <item>Every 5 seconds</item>
         <item>Every 10 seconds</item>
         <item>Every 30 seconds</item>
-        <item>Every minute</item>
-        <item>Every 5 minutes</item>
-        <item>Every 10 minutes</item>
+        <item>Every 60 seconds</item>
     </string-array>
     <string-array name="update_frequency_values">
         <item>1000</item>
@@ -33,8 +31,6 @@
         <item>10000</item>
         <item>30000</item>
         <item>60000</item>
-        <item>300000</item>
-        <item>600000</item>
     </string-array>
 
     <!-- History: DUMMY values -->

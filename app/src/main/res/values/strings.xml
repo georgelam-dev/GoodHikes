@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">GoodHikes</string>
-    <string name="title_activity_login">Sign In</string>
     <string name="title_activity_maps">Map</string>
     <string name="google_app_id">ferrous-linker-121901</string>
 
@@ -15,12 +14,17 @@
     <!--    Setting Labels    -->
     <string name="map_pref">Map Types</string>
     <string name="interval_pref">Interval</string>
+    <string name="logout">Logout</string>
 
     <!-- Default Map Type Hybrid -->
     <string name="map_type_default">3</string>
 
     <!-- Default GPS frequency update intervals -->
     <string name="interval_pref_default">3000</string>
+
+    <!-- Strings for DB connection -->
+    <string name="URL_Login">http://chelseahu.comlu.com/goodhikes_php/Login.php</string>
+    <string name="URL_Register">http://chelseahu.comlu.com/goodhikes_php/Register.php</string>
 
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
@@ -37,5 +41,10 @@
     <string name="title_history_list">HistoryItems</string>
     <string name="title_history_detail">History Detail</string>
     <string name="title_activity_register">RegisterActivity</string>
+
+    <!-- Info Section in MapsActivity -->
+    <string name="duration_label">Duration</string>
+    <string name="distance_label">Distance</string>
+
 
 </resources>

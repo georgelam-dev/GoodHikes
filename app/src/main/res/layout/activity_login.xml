@@ -11,14 +11,17 @@
         android:layout_height="wrap_content"
         android:paddingTop="56dp"
         android:paddingLeft="24dp"
-        android:paddingRight="24dp">
+        android:paddingRight="24dp"
+        android:weightSum="1">
 
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="72dp"
-            android:layout_marginBottom="24dp"
-            android:layout_gravity="center_horizontal" />
-            <!--android:src="@drawable/logo"-->
+        <ImageView android:src="@drawable/goodhikes_title"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginBottom="15dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_weight="0.20"
+            android:layout_marginTop="20dp" />
+
 
         <!-- Email Label -->
         <android.support.design.widget.TextInputLayout
@@ -46,6 +49,7 @@
                 android:hint="Password"/>
         </android.support.design.widget.TextInputLayout>
 
+        <!-- login button -->
         <android.support.v7.widget.AppCompatButton
             android:id="@+id/btn_login"
             android:layout_width="fill_parent"
@@ -57,11 +61,22 @@
             android:background="#0c567b"
             android:textColor="#ffffff" />
 
+        <!-- goto register -->
         <TextView android:id="@+id/link_register"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             android:text="New to Goodhikes? Create account"
+            android:gravity="center"
+            android:textSize="16dip"
+            android:textColor="#ffffff" />
+
+        <!-- continue without login -->
+        <TextView android:id="@+id/link_map"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Or continue without login"
             android:gravity="center"
             android:textSize="16dip"
             android:textColor="#ffffff" />
