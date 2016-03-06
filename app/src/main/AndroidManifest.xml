@@ -65,11 +65,13 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="ca.uwaterloo.magic.goodhikes.MenuActivity" />
         </activity>
-        <activity android:name=".HistoryActivity"
+        <activity
+            android:name=".HistoryActivity"
             android:parentActivityName=".MenuActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="ca.uwaterloo.magic.goodhikes.MenuActivity" />>
+                android:value="ca.uwaterloo.magic.goodhikes.MenuActivity" />
+            >
         </activity>
         <activity
             android:name=".SettingsActivity"
@@ -85,6 +87,16 @@
             android:name=".GPSLoggingService"
             android:enabled="true"
             android:exported="false" />
+
+        <activity
+            android:name=".RegisterActivity"
+            android:label="@string/title_activity_register"
+            android:parentActivityName=".LoginActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="ca.uwaterloo.magic.goodhikes.LoginActivity" />
+        </activity>
     </application>
 
 </manifest>

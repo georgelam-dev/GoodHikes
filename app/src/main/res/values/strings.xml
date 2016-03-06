@@ -36,5 +36,6 @@
     </string>
     <string name="title_history_list">HistoryItems</string>
     <string name="title_history_detail">History Detail</string>
+    <string name="title_activity_register">RegisterActivity</string>
 
 </resources>
