@@ -28,8 +28,7 @@ public class TestDb extends AndroidTestCase {
         tableNameHashSet.add(RoutesContract.LocationEntry.TABLE_NAME);
 
         mContext.deleteDatabase(RoutesDbHelper.DATABASE_NAME);
-        SQLiteDatabase db = new RoutesDbHelper(
-                this.mContext).getWritableDatabase();
+        SQLiteDatabase db = RoutesDbHelper.getInstance(this.mContext).getWritableDatabase();
         assertEquals(true, db.isOpen());
 
         // have we created the tables we want?
@@ -76,6 +75,10 @@ public class TestDb extends AndroidTestCase {
         locationColumnHashSet.add(RoutesContract.LocationEntry.COLUMN_DATE);
         locationColumnHashSet.add(RoutesContract.LocationEntry.COLUMN_COORD_LAT);
         locationColumnHashSet.add(RoutesContract.LocationEntry.COLUMN_COORD_LONG);
+        locationColumnHashSet.add(RoutesContract.LocationEntry.COLUMN_SPEED);
+        locationColumnHashSet.add(RoutesContract.LocationEntry.COLUMN_BEARING);
+        locationColumnHashSet.add(RoutesContract.LocationEntry.COLUMN_ACCURACY);
+
 
         // now, do our tables contain the correct columns?
         c = db.rawQuery("PRAGMA table_info(" + RoutesContract.LocationEntry.TABLE_NAME + ")", null);
@@ -101,12 +104,14 @@ public class TestDb extends AndroidTestCase {
     }
 
     public long insertRoute() {
-        RoutesDbHelper dbHelper = new RoutesDbHelper(mContext);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        SQLiteDatabase db = RoutesDbHelper.getInstance(this.mContext).getWritableDatabase();
 
-        ContentValues routeRecordValues = TestUtilities.createRouteValues();
-        long routeRowId;
-        routeRowId = db.insert(RoutesContract.RouteEntry.TABLE_NAME, null, routeRecordValues);
+        ContentValues userRecordValues = TestUtilities.createUserValues();
+        long userRowId = db.insert(RoutesContract.UserEntry.TABLE_NAME, null, userRecordValues);
+        assertTrue(userRowId != -1);
+
+        ContentValues routeRecordValues = TestUtilities.createRouteValues(userRowId);
+        long routeRowId = db.insert(RoutesContract.RouteEntry.TABLE_NAME, null, routeRecordValues);
         assertTrue(routeRowId != -1);
 
         Cursor cursor = db.query(
@@ -136,8 +141,7 @@ public class TestDb extends AndroidTestCase {
         long routeRowId = insertRoute();
         assertFalse("Error: Route Not Inserted Correctly", routeRowId == -1L);
 
-        RoutesDbHelper dbHelper = new RoutesDbHelper(mContext);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        SQLiteDatabase db = RoutesDbHelper.getInstance(this.mContext).getWritableDatabase();
         ContentValues locationRecordValues = TestUtilities.createUWaterlooLocationValues(routeRowId);
         long locationRowId = db.insert(RoutesContract.LocationEntry.TABLE_NAME, null, locationRecordValues);
         assertTrue(locationRowId != -1);
@@ -159,6 +163,6 @@ public class TestDb extends AndroidTestCase {
         assertFalse( "Error: More than one record returned from weather query",
                 locationCursor.moveToNext() );
         locationCursor.close();
-        dbHelper.close();
+        db.close();
     }
 }

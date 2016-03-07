@@ -33,6 +33,8 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import java.text.DateFormat;
 import java.util.Date;
 
+import ca.uwaterloo.magic.goodhikes.data.Route;
+
 public class MapsActivity extends AppCompatActivity
         implements
         OnMapReadyCallback,
@@ -45,7 +47,7 @@ public class MapsActivity extends AppCompatActivity
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
     private FloatingActionButton mGPSTrackingButton, mSettingsButton, mHistoryButton, mBackButton;
-    private RouteTrace currentRouteTrace;
+    private Route currentRoute;
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
 
@@ -209,7 +211,7 @@ public class MapsActivity extends AppCompatActivity
         public void onServiceConnected(ComponentName className, IBinder binder) {
             mLoggingService = ((GPSLoggingService.LoggingBinder) binder).getService();
             setTrackingButtonIcon();
-            currentRouteTrace = mLoggingService.currentRouteTrace;
+            currentRoute = mLoggingService.currentRoute;
             mLoggingService.broadcastLastKnownLocation();
 
         }
@@ -264,18 +266,18 @@ public class MapsActivity extends AppCompatActivity
     }
 
     private void drawTrace(){
-        if(currentRouteTrace==null) return;
-        visualRouteTrace.setPoints(currentRouteTrace.getPointsCoordinates());
+        if(currentRoute ==null) return;
+        visualRouteTrace.setPoints(currentRoute.getPointsCoordinates());
 
-        if(currentRouteTrace.size()>0 && initRoutePointMarker==null){
+        if(currentRoute.size()>0 && initRoutePointMarker==null){
             initRoutePointMarker = mMap.addMarker(
-                    new MarkerOptions().position(currentRouteTrace.getStartCoordinates()).title("Start"));
+                    new MarkerOptions().position(currentRoute.getStartCoordinates()).title("Start"));
         }
 
-        if (currentRouteTrace.size()>1){
+        if (currentRoute.size()>1){
             if(lastRoutePointMarker!=null) lastRoutePointMarker.remove();
             lastRoutePointMarker =  mMap.addMarker(
-                    new MarkerOptions().position(currentRouteTrace.getLastCoordinates()).title("Current Position"));
+                    new MarkerOptions().position(currentRoute.getLastCoordinates()).title("Current Position"));
         }
     }
 

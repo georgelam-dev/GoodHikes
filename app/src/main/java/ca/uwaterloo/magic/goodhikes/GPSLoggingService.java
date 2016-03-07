@@ -20,6 +20,9 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
+import ca.uwaterloo.magic.goodhikes.data.Route;
+import ca.uwaterloo.magic.goodhikes.data.RoutesDbHelper;
+
 public class GPSLoggingService extends Service
         implements
         LocationListener,
@@ -33,7 +36,9 @@ public class GPSLoggingService extends Service
     private final IBinder mBinder = new LoggingBinder();
     private LooperThread internalLooperThread;
     private boolean mTrackingIsActive=false;
-    public RouteTrace currentRouteTrace = new RouteTrace();
+    public Route currentRoute;
+    private GoodHikesApplication application;
+    private RoutesDbHelper database;
 
     private static class GPSTrackingCommands {
         public static final String START = "ca.uwaterloo.magic.goodhikes.location.update.start";
@@ -81,6 +86,8 @@ public class GPSLoggingService extends Service
     public void onCreate() {
 //        android.os.Debug.waitForDebugger();
         super.onCreate();
+        application = (GoodHikesApplication) getApplicationContext();
+        database = RoutesDbHelper.getInstance(this);
         createGoogleAPIClient();
         createLocationRequest();
         mGoogleApiClient.connect();
@@ -138,7 +145,8 @@ public class GPSLoggingService extends Service
             LocationServices.FusedLocationApi.requestLocationUpdates(
                     mGoogleApiClient, mLocationRequest, this, internalLooperThread.mLooper);
             mTrackingIsActive=true;
-            currentRouteTrace.clearTrace();
+
+            currentRoute = new Route(application.currentUser);
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Starting location tracking in looper thread");
         }
     }
@@ -147,6 +155,7 @@ public class GPSLoggingService extends Service
         LocationServices.FusedLocationApi.removeLocationUpdates(
                 mGoogleApiClient, this);
         mTrackingIsActive=false;
+        database.insertRoute(currentRoute);
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Stopped location tracking in looper thread");
     }
 
@@ -174,7 +183,8 @@ public class GPSLoggingService extends Service
 
     @Override
     public void onLocationChanged(Location location) {
-        currentRouteTrace.addPoint(location);
+        Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Location update received");
+        currentRoute.addPoint(location);
         broadcastLocation(location);
     }
 
