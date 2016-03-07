@@ -12,6 +12,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStream;
@@ -60,7 +62,7 @@ public class LoginActivity extends AppCompatActivity {
                         input += URLEncoder.encode(email, "UTF-8");
                         input += "&password=";
                         input += URLEncoder.encode(password, "UTF-8");
-                        Log.e("Input for AsyncTask", input);
+                        Log.d("Input for AsyncTask", input);
                         new checkLogin().execute(input);
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
@@ -94,6 +96,7 @@ public class LoginActivity extends AppCompatActivity {
     private class checkLogin extends AsyncTask<String, Void, Boolean> {
 
         protected Boolean doInBackground(String... params) {
+            Boolean r = false;
             try {
                 // Open Connection
                 URL url = new URL("http://chelseahu.comlu.com/goodhikes_php/Login.php");
@@ -115,13 +118,20 @@ public class LoginActivity extends AppCompatActivity {
                 InputStream is = conn.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 
-                // Convert inputstream to string
+                // Convert inputstream to JSON
                 String response = reader.readLine();
-                Log.e("Response", response);
+                Log.d("JSON Response", response);
+                JSONObject json = new JSONObject(response);
+                String error = json.getString("error");
+
+
+                if (error == "false") {
+                     r = true;
+                } else { r = false; }
             } catch (Exception e) {
                 Log.d("InputStream", e.getLocalizedMessage());
             }
-            return true;
+            return r;
         }
 
         protected void onPostExecute(Boolean valid) {
