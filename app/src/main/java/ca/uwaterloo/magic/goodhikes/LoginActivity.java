@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -32,7 +33,6 @@ public class LoginActivity extends AppCompatActivity {
     Button btn_login;
     TextView link_register;
     TextView link_map;
-    ProgressDialog pDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,8 +48,6 @@ public class LoginActivity extends AppCompatActivity {
         btn_login = (Button) findViewById(R.id.btn_login);
         link_register = (TextView) findViewById(R.id.link_register);
         link_map = (TextView) findViewById(R.id.link_map);
-        pDialog = new ProgressDialog(this);
-
 
         btn_login.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -74,6 +72,7 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        link_register.setText(Html.fromHtml("New to Goodhikes? <u>Create account</u>"));
         link_register.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

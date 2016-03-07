@@ -98,7 +98,6 @@ public class SettingsActivity extends PreferenceActivity
 
     @Override
     public boolean onPreferenceClick(Preference preference) {
-        System.out.println(preference.getKey());
         if (preference.getKey().equals("Logout")) {
             AlertDialog.Builder logout_prompt = new AlertDialog.Builder(this);
             logout_prompt.setMessage("Are you sure?");
@@ -108,6 +107,7 @@ public class SettingsActivity extends PreferenceActivity
                     Intent restart = new Intent(getApplicationContext(), LoginActivity.class);
                     restart.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     finish();
+                    sendBroadcast(new Intent("logout"));
                     startActivity(restart);
                 }
             });

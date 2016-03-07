@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -44,6 +45,7 @@ public class RegisterActivity extends AppCompatActivity {
         register = (Button) findViewById(R.id.btn_register);
         link_login = (TextView) findViewById(R.id.link_login);
 
+        link_login.setText(Html.fromHtml("Already a member? <u>Login</u>"));
         link_login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

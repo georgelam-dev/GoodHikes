@@ -106,10 +106,10 @@ public class GPSLoggingService extends Service
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Stopped GPS tracking service");
     }
 
-        @Override
-        public void onDestroy() {
-            stopService();
-        }
+    @Override
+    public void onDestroy() {
+        stopService();
+    }
 
     private void createGoogleAPIClient() {
         if (mGoogleApiClient == null) {
@@ -223,9 +223,9 @@ public class GPSLoggingService extends Service
     }
 
     private void onHandleIntent(Intent intent) {
-        if(intent.getAction()==GPSTrackingCommands.START) {
+        if(intent.getAction().equals(GPSTrackingCommands.START)) {
             startLocationTrackingInLooperThread();
-        }else if(intent.getAction()==GPSTrackingCommands.STOP){
+        }else if(intent.getAction().equals(GPSTrackingCommands.STOP)){
             stopLocationTrackingInLooperThread();
         }
 

@@ -12,11 +12,11 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -46,10 +46,18 @@ public class MapsActivity extends AppCompatActivity
     private IntentFilter mFilter;
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
-    private FloatingActionButton mGPSTrackingButton, mSettingsButton, mHistoryButton, mBackButton;
+    private ImageButton mGPSTrackingButton, mSettingsButton, mHistoryButton;
     private Route currentRoute;
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
+
+    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            stopGPSLoggingService();
+            finish();
+        }
+    };
 
     /**
      * onCreate() is called only once for Activity, whereas onStart() - each time
@@ -65,15 +73,19 @@ public class MapsActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+        // Kill activity if logging out
+        IntentFilter filter = new IntentFilter("logout");
+        registerReceiver(receiver, filter);
+
         //Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         //Create and attach listeners to buttons
-        mSettingsButton = (FloatingActionButton) findViewById(R.id.settings_button);
-        mHistoryButton = (FloatingActionButton) findViewById(R.id.history_button);
-        mGPSTrackingButton = (FloatingActionButton) findViewById(R.id.gps_tracking_control_button);
+        mSettingsButton = (ImageButton) findViewById(R.id.settings_button);
+        mHistoryButton = (ImageButton) findViewById(R.id.history_button);
+        mGPSTrackingButton = (ImageButton) findViewById(R.id.gps_tracking_control_button);
         attachUICallbacks();
     }
 
@@ -110,7 +122,7 @@ public class MapsActivity extends AppCompatActivity
         Intent intent = new Intent(this, GPSLoggingService.class);
         bindService(intent, mConnection, BIND_AUTO_CREATE);
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Binding to service");
-        if(mMap != null) {
+        if (mMap != null) {
             updateMapType();
         }
     }
@@ -135,9 +147,6 @@ public class MapsActivity extends AppCompatActivity
     * */
 
     public void stopGPSLoggingService(){
-        mLoggingService.stopLocationTracking();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
-        unbindService(mConnection);
         stopService(new Intent(this, GPSLoggingService.class));
     }
 

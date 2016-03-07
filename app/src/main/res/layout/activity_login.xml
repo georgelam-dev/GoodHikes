@@ -12,7 +12,9 @@
         android:paddingTop="56dp"
         android:paddingLeft="24dp"
         android:paddingRight="24dp"
-        android:weightSum="1">
+        android:weightSum="1"
+        android:focusableInTouchMode="true"
+        android:focusable="true">
 
         <ImageView android:src="@drawable/goodhikes_title"
             android:layout_width="match_parent"
