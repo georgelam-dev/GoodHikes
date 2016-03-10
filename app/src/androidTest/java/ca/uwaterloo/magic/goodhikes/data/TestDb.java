@@ -8,7 +8,7 @@ import android.test.AndroidTestCase;
 import java.util.HashSet;
 
 public class TestDb extends AndroidTestCase {
-
+    private static final String TEST_DATABASE_PREFIX = "test_";
     public static final String LOG_TAG = TestDb.class.getSimpleName();
 
     public void setUp() {

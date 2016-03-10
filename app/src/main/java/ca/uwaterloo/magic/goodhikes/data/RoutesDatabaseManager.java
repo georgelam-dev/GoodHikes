@@ -8,6 +8,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
@@ -44,7 +46,18 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
      * Make a call to the static method "getInstance()" instead.
      */
     private RoutesDatabaseManager(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        super(context, (isJUnitTest() ? DATABASE_NAME_TEST : DATABASE_NAME), null, DATABASE_VERSION);
+    }
+
+    private static boolean isJUnitTest() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        List<StackTraceElement> list = Arrays.asList(stackTrace);
+        for (StackTraceElement element : list) {
+            if (element.getClassName().startsWith("junit.")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
