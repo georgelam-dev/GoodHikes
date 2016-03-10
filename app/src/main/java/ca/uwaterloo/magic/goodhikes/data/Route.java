@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.location.Location;
 import com.google.android.gms.maps.model.LatLng;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
@@ -119,5 +120,13 @@ public class Route {
             route.user.setUsername(cursor.getString(cursor.getColumnIndex(UserEntry.COLUMN_USERNAME_ALIAS)));
         }
         return route;
+    }
+
+    //currently filters by username, not user_id, since user object might not have an ID assigned
+    //FIX: make sure that passed User object has a user_id assigned
+    public static HashMap filterByUser(User user){
+        HashMap routesRetrievalOptions = new HashMap();
+        routesRetrievalOptions.put(UserEntry.COLUMN_USERNAME_ALIAS, String.valueOf(user.getUsername()));
+        return routesRetrievalOptions;
     }
 }

@@ -77,6 +77,7 @@ public class MapsActivity extends AppCompatActivity
         setContentView(R.layout.activity_maps);
         database = RoutesDatabaseManager.getInstance(this);
         application = (GoodHikesApplication) getApplicationContext();
+        latestRoute = database.getLatestRoute(application.currentUser);
 
         // Kill activity if logging out
         IntentFilter filter = new IntentFilter("logout");

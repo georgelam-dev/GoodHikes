@@ -9,6 +9,7 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
@@ -278,24 +279,39 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         return route;
     }
 
+    public ArrayList<Route> getAllRoutes() {
+        return getAllRoutes(new HashMap());
+    }
+
     /**
      * SELECT routes.*, users.name AS username FROM routes
      * INNER JOIN users ON routes.user_id = users._id
+     * WHERE username = ?
      * ORDER BY routes._id DESC
      */
-    public ArrayList<Route> getAllRoutes() {
+    public ArrayList<Route> getAllRoutes(HashMap options) {
         String routeSelectQuery = String.format(
                 "SELECT %s.*, %s.%s AS %s FROM %s " +
-                "INNER JOIN %s ON %s.%s = %s.%s " +
-                "ORDER BY %s.%s DESC",
-                RouteEntry.TABLE_NAME, UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME, UserEntry.COLUMN_USERNAME_ALIAS, RouteEntry.TABLE_NAME,
-                UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY, UserEntry.TABLE_NAME, UserEntry._ID,
-                RouteEntry.TABLE_NAME, RouteEntry._ID);
+                "INNER JOIN %s ON %s.%s = %s.%s ",
+                RouteEntry.TABLE_NAME, UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME,
+                UserEntry.COLUMN_USERNAME_ALIAS, RouteEntry.TABLE_NAME,
+                UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY,
+                UserEntry.TABLE_NAME, UserEntry._ID);
+
+        String[] queryParams = null;
+        if(options.get(UserEntry.COLUMN_USERNAME_ALIAS)!=null){
+            String whereClause = String.format("WHERE %s = ? ", UserEntry.COLUMN_USERNAME_ALIAS);
+            routeSelectQuery+=whereClause;
+            queryParams = new String[]{String.valueOf(options.get(UserEntry.COLUMN_USERNAME_ALIAS))};
+        }
+
+        String orderClause = String.format("ORDER BY %s.%s DESC ", RouteEntry.TABLE_NAME, RouteEntry._ID);
+        routeSelectQuery+=orderClause;
 
         ArrayList<Route> routes = new ArrayList<Route>();
         Route route;
         SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.rawQuery(routeSelectQuery, null);
+        Cursor cursor = db.rawQuery(routeSelectQuery, queryParams);
         try {
             if (cursor.moveToFirst()) {
                 do {
