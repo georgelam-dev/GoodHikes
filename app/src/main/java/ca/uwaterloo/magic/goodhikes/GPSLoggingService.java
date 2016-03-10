@@ -21,7 +21,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
 import ca.uwaterloo.magic.goodhikes.data.Route;
-import ca.uwaterloo.magic.goodhikes.data.RoutesDbHelper;
+import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
 
 public class GPSLoggingService extends Service
         implements
@@ -38,7 +38,7 @@ public class GPSLoggingService extends Service
     private boolean mTrackingIsActive=false;
     public Route currentRoute;
     private GoodHikesApplication application;
-    private RoutesDbHelper database;
+    private RoutesDatabaseManager database;
 
     private static class GPSTrackingCommands {
         public static final String START = "ca.uwaterloo.magic.goodhikes.location.update.start";
@@ -87,7 +87,7 @@ public class GPSLoggingService extends Service
 //        android.os.Debug.waitForDebugger();
         super.onCreate();
         application = (GoodHikesApplication) getApplicationContext();
-        database = RoutesDbHelper.getInstance(this);
+        database = RoutesDatabaseManager.getInstance(this);
         createGoogleAPIClient();
         createLocationRequest();
         mGoogleApiClient.connect();

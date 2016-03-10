@@ -19,21 +19,22 @@ import ca.uwaterloo.magic.goodhikes.data.RoutesContract.LocationEntry;
  * http://developer.android.com/training/basics/data-storage/databases.html
  * to add data handling methods
  */
-public class RoutesDbHelper extends SQLiteOpenHelper {
-    private static RoutesDbHelper sInstance;
-    protected static final String LOG_TAG = "RoutesDbHelper";
+public class RoutesDatabaseManager extends SQLiteOpenHelper {
+    private static RoutesDatabaseManager sInstance;
+    protected static final String LOG_TAG = "RoutesDatabaseManager";
 
     // If you change the database schema, you must increment the database version.
     private static final int DATABASE_VERSION = 1;
 
     static final String DATABASE_NAME = "routes.db";
+    static final String DATABASE_NAME_TEST = "routes_test.db";
 
-    public static synchronized RoutesDbHelper getInstance(Context context) {
+    public static synchronized RoutesDatabaseManager getInstance(Context context) {
         // Use the application context, which will ensure that you
         // don't accidentally leak an Activity's context.
         // http://android-developers.blogspot.ca/2009/01/avoiding-memory-leaks.html
         if (sInstance == null) {
-            sInstance = new RoutesDbHelper(context.getApplicationContext());
+            sInstance = new RoutesDatabaseManager(context.getApplicationContext());
         }
         return sInstance;
     }
@@ -42,7 +43,7 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
      * Constructor should be private to prevent direct instantiation.
      * Make a call to the static method "getInstance()" instead.
      */
-    private RoutesDbHelper(Context context) {
+    private RoutesDatabaseManager(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
@@ -278,7 +279,7 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
                 UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY, UserEntry.TABLE_NAME, UserEntry._ID,
                 RouteEntry.TABLE_NAME, RouteEntry._ID);
 
-        ArrayList<Route> routes = new ArrayList<>();
+        ArrayList<Route> routes = new ArrayList<Route>();
         Route route;
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(routeSelectQuery, null);

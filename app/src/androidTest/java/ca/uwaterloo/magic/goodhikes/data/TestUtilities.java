@@ -53,7 +53,7 @@ public class TestUtilities extends AndroidTestCase {
     }
 
     static long insertLocationData(Context context) {
-        SQLiteDatabase db = RoutesDbHelper.getInstance(context).getWritableDatabase();
+        SQLiteDatabase db = RoutesDatabaseManager.getInstance(context).getWritableDatabase();
 
         ContentValues userRecord = TestUtilities.createUserValues();
         long userRowId = db.insert(RoutesContract.UserEntry.TABLE_NAME, null, userRecord);

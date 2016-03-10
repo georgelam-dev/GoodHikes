@@ -16,7 +16,7 @@ public class TestDb extends AndroidTestCase {
     }
 
     void deleteTheDatabase() {
-        mContext.deleteDatabase(RoutesDbHelper.DATABASE_NAME);
+        mContext.deleteDatabase(RoutesDatabaseManager.DATABASE_NAME_TEST);
     }
 
     public void testCreateDb() throws Throwable {
@@ -27,8 +27,8 @@ public class TestDb extends AndroidTestCase {
         tableNameHashSet.add(RoutesContract.RouteEntry.TABLE_NAME);
         tableNameHashSet.add(RoutesContract.LocationEntry.TABLE_NAME);
 
-        mContext.deleteDatabase(RoutesDbHelper.DATABASE_NAME);
-        SQLiteDatabase db = RoutesDbHelper.getInstance(this.mContext).getWritableDatabase();
+        mContext.deleteDatabase(RoutesDatabaseManager.DATABASE_NAME_TEST);
+        SQLiteDatabase db = RoutesDatabaseManager.getInstance(this.mContext).getWritableDatabase();
         assertEquals(true, db.isOpen());
 
         // have we created the tables we want?
@@ -104,7 +104,7 @@ public class TestDb extends AndroidTestCase {
     }
 
     public long insertRoute() {
-        SQLiteDatabase db = RoutesDbHelper.getInstance(this.mContext).getWritableDatabase();
+        SQLiteDatabase db = RoutesDatabaseManager.getInstance(this.mContext).getWritableDatabase();
 
         ContentValues userRecordValues = TestUtilities.createUserValues();
         long userRowId = db.insert(RoutesContract.UserEntry.TABLE_NAME, null, userRecordValues);
@@ -141,7 +141,7 @@ public class TestDb extends AndroidTestCase {
         long routeRowId = insertRoute();
         assertFalse("Error: Route Not Inserted Correctly", routeRowId == -1L);
 
-        SQLiteDatabase db = RoutesDbHelper.getInstance(this.mContext).getWritableDatabase();
+        SQLiteDatabase db = RoutesDatabaseManager.getInstance(this.mContext).getWritableDatabase();
         ContentValues locationRecordValues = TestUtilities.createUWaterlooLocationValues(routeRowId);
         long locationRowId = db.insert(RoutesContract.LocationEntry.TABLE_NAME, null, locationRecordValues);
         assertTrue(locationRowId != -1);
