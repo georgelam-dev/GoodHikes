@@ -1,50 +1,70 @@
 package ca.uwaterloo.magic.goodhikes.data;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.location.Location;
 import com.google.android.gms.maps.model.LatLng;
 import java.util.ArrayList;
 
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
-import ca.uwaterloo.magic.goodhikes.data.RoutesContract.LocationEntry;
 
 public class Route {
     private long id;
-    private ArrayList<Location> trace;
+    private ArrayList<LocationPoint> trace;
     private ArrayList<LatLng> pointsCoordinates;
     private User user;
     private String description;
 
     // Date start/end, stored as long in milliseconds since the epoch
-    private int dateStart;
-    private int dateEnd;
+    private long dateStart;
+    private long dateEnd;
 
     public long getId() {return id;}
     public void setId(long id) {this.id = id;}
 
     public Route(User user) {
         this.user = user;
-        this.trace = new ArrayList<Location>();
+        this.trace = new ArrayList<LocationPoint>();
         this.pointsCoordinates = new ArrayList<LatLng>();
         this.description = "stub_descr";
-        this.dateStart = 1457302006; //stub
-        this.dateEnd = 1457302006; //stub
+        this.dateStart = System.currentTimeMillis();
     }
 
+    public Route() {}
+
     public void addPoint(Location location){
-        trace.add(location);
-        LatLng pointCoordinates = new LatLng(location.getLatitude(), location.getLongitude());
+        LocationPoint locationPoint = new LocationPoint(location);
+        trace.add(locationPoint);
+        LatLng pointCoordinates = new LatLng(locationPoint.getLatitude(), locationPoint.getLongitude());
         pointsCoordinates.add(pointCoordinates);
     }
 
-    public ArrayList<Location> getTrace(){
+    public ArrayList<LocationPoint> getTrace(){
         return trace;
     }
+
+    public void setTrace(ArrayList<LocationPoint> trace){
+        this.trace = trace;
+        this.pointsCoordinates = new ArrayList<LatLng>();
+        for(LocationPoint locationPoint : trace){
+            LatLng pointCoordinates = new LatLng(locationPoint.getLatitude(), locationPoint.getLongitude());
+            pointsCoordinates.add(pointCoordinates);
+        }
+    }
+
     public User getUser(){
         return user;
     }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
     public String getDescription(){
         return description;
+    }
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public ArrayList<LatLng> getPointsCoordinates(){
@@ -68,7 +88,7 @@ public class Route {
         pointsCoordinates.clear();
     }
 
-    public ContentValues getContentValues(){
+    public ContentValues toContentValues(){
         ContentValues values = new ContentValues();
         values.put(RouteEntry.COLUMN_DESCRIPTION, description);
         values.put(RouteEntry.COLUMN_DATE_START, dateStart);
@@ -76,15 +96,22 @@ public class Route {
         return values;
     }
 
-    public ContentValues getLocationContentValues(Location location){
-        ContentValues values = new ContentValues();
-        values.put(LocationEntry.COLUMN_ROUTE_KEY, this.id);
-        values.put(LocationEntry.COLUMN_DATE,      location.getTime());
-        values.put(LocationEntry.COLUMN_COORD_LAT, location.getLatitude());
-        values.put(LocationEntry.COLUMN_COORD_LONG,location.getLongitude());
-        values.put(LocationEntry.COLUMN_SPEED,     location.getSpeed());
-        values.put(LocationEntry.COLUMN_BEARING,   location.getBearing());
-        values.put(LocationEntry.COLUMN_ACCURACY,  location.getAccuracy());
-        return values;
+    // stored as long in milliseconds since the epoch
+    public void setDateStart(long timeMillis){
+        dateStart = timeMillis;
+    }
+
+    // stored as long in milliseconds since the epoch
+    public void setDateEnd(long timeMillis){
+        dateEnd = timeMillis;
+    }
+
+    public static Route fromDBCursor(Cursor cursor){
+        Route route = new Route();
+        route.setId(cursor.getLong(cursor.getColumnIndex(RouteEntry._ID)));
+        route.setDescription(cursor.getString(cursor.getColumnIndex(RouteEntry.COLUMN_DESCRIPTION)));
+        route.setDateStart(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_DATE_START)));
+        route.setDateEnd(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_DATE_END)));
+        return route;
     }
 }

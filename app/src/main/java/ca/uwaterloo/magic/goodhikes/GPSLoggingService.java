@@ -155,6 +155,7 @@ public class GPSLoggingService extends Service
         LocationServices.FusedLocationApi.removeLocationUpdates(
                 mGoogleApiClient, this);
         mTrackingIsActive=false;
+        currentRoute.setDateEnd(System.currentTimeMillis());
         database.insertRoute(currentRoute);
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Stopped location tracking in looper thread");
     }

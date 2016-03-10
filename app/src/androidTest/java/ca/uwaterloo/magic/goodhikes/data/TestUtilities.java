@@ -27,7 +27,7 @@ public class TestUtilities extends AndroidTestCase {
 
     static ContentValues createUserValues() {
         ContentValues userValues = new ContentValues();
-        userValues.put(RoutesContract.UserEntry.COLUMN_NAME, "dude");
+        userValues.put(RoutesContract.UserEntry.COLUMN_USERNAME, "dude");
         return userValues;
     }
 

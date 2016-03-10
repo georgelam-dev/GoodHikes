@@ -1,6 +1,7 @@
 package ca.uwaterloo.magic.goodhikes.data;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
 
@@ -20,9 +21,21 @@ public class User {
     public String getUsername(){
         return username;
     }
-    public ContentValues getContentValues(){
+
+    public void setUsername(String username){
+        this.username = username;
+    }
+
+    public ContentValues toContentValues(){
         ContentValues values = new ContentValues();
-        values.put(UserEntry.COLUMN_NAME, username);
+        values.put(UserEntry.COLUMN_USERNAME, username);
         return values;
+    }
+
+    public static User fromDBCursor(Cursor cursor){
+        User user = new User();
+        user.setId(cursor.getLong(cursor.getColumnIndex(UserEntry._ID)));
+        user.setUsername(cursor.getString(cursor.getColumnIndex(UserEntry.COLUMN_USERNAME)));
+        return user;
     }
 }

@@ -34,6 +34,7 @@ import java.text.DateFormat;
 import java.util.Date;
 
 import ca.uwaterloo.magic.goodhikes.data.Route;
+import ca.uwaterloo.magic.goodhikes.data.RoutesDbHelper;
 
 public class MapsActivity extends AppCompatActivity
         implements
@@ -41,13 +42,15 @@ public class MapsActivity extends AppCompatActivity
         GoogleMap.OnMyLocationButtonClickListener{
 
     protected GoogleMap mMap;
+    private RoutesDbHelper database;
+    private GoodHikesApplication application;
     protected static final String LOG_TAG = "MapsActivity";
     private GPSUpdatesReceiver mGPSUpdatesReceiver;
     private IntentFilter mFilter;
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
     private ImageButton mGPSTrackingButton, mSettingsButton, mHistoryButton;
-    private Route currentRoute;
+    private Route currentRoute, latestRoute;
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
 
@@ -72,6 +75,9 @@ public class MapsActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        database = RoutesDbHelper.getInstance(this);
+        application = (GoodHikesApplication) getApplicationContext();
+        latestRoute = database.getLatestRoute(application.currentUser);
 
         // Kill activity if logging out
         IntentFilter filter = new IntentFilter("logout");

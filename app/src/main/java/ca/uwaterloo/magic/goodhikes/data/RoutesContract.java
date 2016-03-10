@@ -59,6 +59,6 @@ public class RoutesContract {
 
     public static final class UserEntry implements BaseColumns {
         public static final String TABLE_NAME = "users";
-        public static final String COLUMN_NAME = "name";
+        public static final String COLUMN_USERNAME = "name";
     }
 }

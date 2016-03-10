@@ -5,8 +5,9 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.location.Location;
 import android.util.Log;
+
+import java.util.ArrayList;
 
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
@@ -15,6 +16,7 @@ import ca.uwaterloo.magic.goodhikes.data.RoutesContract.LocationEntry;
 /**
  * Manages device's database for routes data.
  * Use this guide https://guides.codepath.com/android/Local-Databases-with-SQLiteOpenHelper
+ * http://developer.android.com/training/basics/data-storage/databases.html
  * to add data handling methods
  */
 public class RoutesDbHelper extends SQLiteOpenHelper {
@@ -48,7 +50,7 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
         final String SQL_CREATE_USER_TABLE = "CREATE TABLE " + UserEntry.TABLE_NAME + " (" +
                 UserEntry._ID                 + " INTEGER PRIMARY KEY AUTOINCREMENT," +
-                UserEntry.COLUMN_NAME         + " TEXT NOT NULL " +
+                UserEntry.COLUMN_USERNAME     + " TEXT NOT NULL " +
                 " );";
 
         final String SQL_CREATE_ROUTE_TABLE = "CREATE TABLE " + RouteEntry.TABLE_NAME + " (" +
@@ -87,6 +89,7 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
         // Note that this only fires if you change the version number for your database.
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + RouteEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + LocationEntry.TABLE_NAME);
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + UserEntry.TABLE_NAME);
         onCreate(sqLiteDatabase);
     }
 
@@ -95,9 +98,9 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
         db.beginTransaction();
         try {
             long userId = insertOrUpdateUser(route.getUser());
-            ContentValues routeKV = route.getContentValues();
-            routeKV.put(RouteEntry.COLUMN_USER_KEY, userId);
-            long routeId = db.insertOrThrow(RouteEntry.TABLE_NAME, null, routeKV);
+            ContentValues routeCV = route.toContentValues();
+            routeCV.put(RouteEntry.COLUMN_USER_KEY, userId);
+            long routeId = db.insertOrThrow(RouteEntry.TABLE_NAME, null, routeCV);
             route.setId(routeId);
             bulkInsertLocationPoints(route);
             db.setTransactionSuccessful();
@@ -115,9 +118,10 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
 
         db.beginTransaction();
         try {
-            for(Location location : route.getTrace()){
-                ContentValues locationKV = route.getLocationContentValues(location);
-                id = db.insert(LocationEntry.TABLE_NAME, null, locationKV);
+            for(LocationPoint location : route.getTrace()){
+                ContentValues locationCV = location.toContentValues();
+                locationCV.put(LocationEntry.COLUMN_ROUTE_KEY, route.getId());
+                id = db.insert(LocationEntry.TABLE_NAME, null, locationCV);
                 if (id != -1) {
                     returnCount++;
                 }
@@ -137,18 +141,18 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
 
         db.beginTransaction();
         try {
-            ContentValues userKV = user.getContentValues();
+            ContentValues userCV = user.toContentValues();
             // This assumes usernames are unique
-            int rows = db.update(UserEntry.TABLE_NAME, userKV, UserEntry.COLUMN_NAME + "= ?", new String[]{user.getUsername()});
+            int rows = db.update(UserEntry.TABLE_NAME, userCV, UserEntry.COLUMN_USERNAME + "= ?", new String[]{user.getUsername()});
 
             // Check if update succeeded
             if (rows == 1) {
                 userId = getUserId(user);
             } else {
                 // user with this userName did not already exist, so insert new user
-                userId = db.insertOrThrow(UserEntry.TABLE_NAME, null, userKV);
-                db.setTransactionSuccessful();
+                userId = db.insertOrThrow(UserEntry.TABLE_NAME, null, userCV);
             }
+            db.setTransactionSuccessful();
         } catch (Exception e) {
             Log.d(LOG_TAG, "Error while trying to insert or update user");
         } finally {
@@ -162,8 +166,8 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         long userId = -1;
         String usersSelectQuery = String.format("SELECT %s FROM %s WHERE %s = ?",
-                UserEntry._ID, UserEntry.TABLE_NAME, UserEntry.COLUMN_NAME);
-        Cursor cursor = db.rawQuery(usersSelectQuery, new String[]{String.valueOf(user.getUsername())});
+                UserEntry._ID, UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME);
+        Cursor cursor = db.rawQuery(usersSelectQuery, new String[]{user.getUsername()});
         try {
             if (cursor.moveToFirst()) {
                 userId = cursor.getInt(0);
@@ -175,5 +179,138 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
         }
         user.setId(userId);
         return userId;
+    }
+
+    public Route getRoute(long routeId) {
+        Route route = new Route();
+        SQLiteDatabase db = getWritableDatabase();
+        String ROUTES_SELECT_QUERY =
+                String.format("SELECT * FROM %s WHERE %s = ?",
+                        RouteEntry.TABLE_NAME, RouteEntry._ID);
+        Cursor cursor = db.rawQuery(ROUTES_SELECT_QUERY, new String[]{String.valueOf(routeId)});
+        try {
+            if (cursor.moveToFirst()) {
+                route = Route.fromDBCursor(cursor);
+                User user = getUser(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_USER_KEY)));
+                route.setUser(user);
+                route.setTrace(getLocations(route.getId()));
+            }
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+        return route;
+    }
+
+    public User getUser(long id) {
+        User user=new User();
+        SQLiteDatabase db = getWritableDatabase();
+        String ROUTES_SELECT_QUERY =
+                String.format("SELECT * FROM %s WHERE %s = ?",
+                        UserEntry.TABLE_NAME, UserEntry._ID);
+        Cursor cursor = db.rawQuery(ROUTES_SELECT_QUERY, new String[]{String.valueOf(id)});
+        try {
+            if (cursor.moveToFirst()) {
+                user = User.fromDBCursor(cursor);
+            }
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+        return user;
+    }
+
+    /**
+     * SELECT routes._id FROM routes
+     * INNER JOIN users ON routes.user_id = users._id
+     * WHERE users.name = ?
+     * ORDER BY routes._id DESC
+     */
+    public long getLatestRouteId(User user) {
+        SQLiteDatabase db = getWritableDatabase();
+        long routeId = -1;
+        String routeSelectQuery = String.format("SELECT %s.%s FROM %s INNER JOIN %s ON %s.%s = %s.%s " +
+                        "WHERE %s.%s = ? ORDER BY %s.%s DESC",
+                RouteEntry.TABLE_NAME, RouteEntry._ID, RouteEntry.TABLE_NAME, UserEntry.TABLE_NAME,
+                RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY, UserEntry.TABLE_NAME, UserEntry._ID,
+                UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME, RouteEntry.TABLE_NAME, RouteEntry._ID);
+
+        Cursor cursor = db.rawQuery(routeSelectQuery, new String[]{user.getUsername()});
+        try {
+            if (cursor.moveToFirst()) {
+                routeId = cursor.getInt(0);
+            }
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+        return routeId;
+    }
+
+    public Route getLatestRoute(User user) {
+        long latestRouteId = getLatestRouteId(user);
+        return getRoute(latestRouteId);
+    }
+
+    // SELECT * FROM locations WHERE route_id = ? ORDER BY _id ASC
+    public ArrayList<LocationPoint> getLocations(long routeId) {
+        ArrayList<LocationPoint> locations = new ArrayList<>();
+        SQLiteDatabase db = getWritableDatabase();
+        String LOCATIONS_SELECT_QUERY =
+                String.format("SELECT * FROM %s WHERE %s = ? ORDER BY %s ASC",
+                        LocationEntry.TABLE_NAME, LocationEntry.COLUMN_ROUTE_KEY, LocationEntry._ID);
+        Cursor cursor = db.rawQuery(LOCATIONS_SELECT_QUERY, new String[]{String.valueOf(routeId)});
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    locations.add(LocationPoint.fromDBCursor(cursor));
+                } while(cursor.moveToNext());
+
+            }
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+        return locations;
+    }
+
+    /**
+     * select * from routes
+     * inner join locations on locations.route_id = routes.id
+     * inner join users on routes.user_id = users.id
+     *
+     * NOT FINISHED
+     */
+    public ArrayList<Route> getAllRoutes() {
+        String ROUTES_SELECT_QUERY =
+                String.format("SELECT * FROM %s INNER JOIN %s ON %s.%s = %s.%s" +
+                                " INNER JOIN %s ON %s.%s = %s.%s",
+                        RouteEntry.TABLE_NAME, LocationEntry.TABLE_NAME, LocationEntry.TABLE_NAME,
+                        LocationEntry.COLUMN_ROUTE_KEY, RouteEntry.TABLE_NAME, RouteEntry._ID,
+                        UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY,
+                        UserEntry.TABLE_NAME, UserEntry._ID);
+
+        ArrayList<Route> routes = new ArrayList<>();
+        Route route;
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery(ROUTES_SELECT_QUERY, null);
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    route = Route.fromDBCursor(cursor);
+                } while(cursor.moveToNext());
+            }
+        } catch (Exception e) {
+            Log.d(LOG_TAG, "Error while trying to get routes from database");
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+        return routes;
     }
 }
