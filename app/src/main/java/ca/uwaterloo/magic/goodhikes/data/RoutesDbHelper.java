@@ -181,28 +181,6 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
         return userId;
     }
 
-    public Route getRoute(long routeId) {
-        Route route = new Route();
-        SQLiteDatabase db = getWritableDatabase();
-        String ROUTES_SELECT_QUERY =
-                String.format("SELECT * FROM %s WHERE %s = ?",
-                        RouteEntry.TABLE_NAME, RouteEntry._ID);
-        Cursor cursor = db.rawQuery(ROUTES_SELECT_QUERY, new String[]{String.valueOf(routeId)});
-        try {
-            if (cursor.moveToFirst()) {
-                route = Route.fromDBCursor(cursor);
-                User user = getUser(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_USER_KEY)));
-                route.setUser(user);
-                route.setTrace(getLocations(route.getId()));
-            }
-        } finally {
-            if (cursor != null && !cursor.isClosed()) {
-                cursor.close();
-            }
-        }
-        return route;
-    }
-
     public User getUser(long id) {
         User user=new User();
         SQLiteDatabase db = getWritableDatabase();
@@ -255,6 +233,73 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
         return getRoute(latestRouteId);
     }
 
+    /**
+     * SELECT routes.*, users.name AS username FROM routes
+     * INNER JOIN users ON routes.user_id = users._id
+     * WHERE routes._id = ?
+     */
+    public Route getRoute(long routeId) {
+        Route route = new Route();
+        SQLiteDatabase db = getWritableDatabase();
+
+        String routeSelectQuery = String.format(
+                "SELECT %s.*, %s.%s AS %s FROM %s " +
+                "INNER JOIN %s ON %s.%s = %s.%s " +
+                "WHERE %s.%s = ?",
+                RouteEntry.TABLE_NAME, UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME, UserEntry.COLUMN_USERNAME_ALIAS, RouteEntry.TABLE_NAME,
+                UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY, UserEntry.TABLE_NAME, UserEntry._ID,
+                RouteEntry.TABLE_NAME, RouteEntry._ID);
+
+        Cursor cursor = db.rawQuery(routeSelectQuery, new String[]{String.valueOf(routeId)});
+        try {
+            if (cursor.moveToFirst()) {
+                route = Route.fromDBCursor(cursor, true);
+                route.setTrace(getLocations(route.getId()));
+            }
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+        return route;
+    }
+
+    /**
+     * SELECT routes.*, users.name AS username FROM routes
+     * INNER JOIN users ON routes.user_id = users._id
+     * ORDER BY routes._id DESC
+     */
+    public ArrayList<Route> getAllRoutes() {
+        String routeSelectQuery = String.format(
+                "SELECT %s.*, %s.%s AS %s FROM %s " +
+                "INNER JOIN %s ON %s.%s = %s.%s " +
+                "ORDER BY %s.%s DESC",
+                RouteEntry.TABLE_NAME, UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME, UserEntry.COLUMN_USERNAME_ALIAS, RouteEntry.TABLE_NAME,
+                UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY, UserEntry.TABLE_NAME, UserEntry._ID,
+                RouteEntry.TABLE_NAME, RouteEntry._ID);
+
+        ArrayList<Route> routes = new ArrayList<>();
+        Route route;
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery(routeSelectQuery, null);
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    route = Route.fromDBCursor(cursor, true);
+                    route.setTrace(getLocations(route.getId()));
+                    routes.add(route);
+                } while(cursor.moveToNext());
+            }
+        } catch (Exception e) {
+            Log.d(LOG_TAG, "Error while trying to get routes from database");
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+        return routes;
+    }
+
     // SELECT * FROM locations WHERE route_id = ? ORDER BY _id ASC
     public ArrayList<LocationPoint> getLocations(long routeId) {
         ArrayList<LocationPoint> locations = new ArrayList<>();
@@ -276,41 +321,5 @@ public class RoutesDbHelper extends SQLiteOpenHelper {
             }
         }
         return locations;
-    }
-
-    /**
-     * select * from routes
-     * inner join locations on locations.route_id = routes.id
-     * inner join users on routes.user_id = users.id
-     *
-     * NOT FINISHED
-     */
-    public ArrayList<Route> getAllRoutes() {
-        String ROUTES_SELECT_QUERY =
-                String.format("SELECT * FROM %s INNER JOIN %s ON %s.%s = %s.%s" +
-                                " INNER JOIN %s ON %s.%s = %s.%s",
-                        RouteEntry.TABLE_NAME, LocationEntry.TABLE_NAME, LocationEntry.TABLE_NAME,
-                        LocationEntry.COLUMN_ROUTE_KEY, RouteEntry.TABLE_NAME, RouteEntry._ID,
-                        UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY,
-                        UserEntry.TABLE_NAME, UserEntry._ID);
-
-        ArrayList<Route> routes = new ArrayList<>();
-        Route route;
-        SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.rawQuery(ROUTES_SELECT_QUERY, null);
-        try {
-            if (cursor.moveToFirst()) {
-                do {
-                    route = Route.fromDBCursor(cursor);
-                } while(cursor.moveToNext());
-            }
-        } catch (Exception e) {
-            Log.d(LOG_TAG, "Error while trying to get routes from database");
-        } finally {
-            if (cursor != null && !cursor.isClosed()) {
-                cursor.close();
-            }
-        }
-        return routes;
     }
 }

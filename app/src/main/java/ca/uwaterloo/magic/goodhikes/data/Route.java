@@ -7,6 +7,7 @@ import com.google.android.gms.maps.model.LatLng;
 import java.util.ArrayList;
 
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
+import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
 
 public class Route {
     private long id;
@@ -106,12 +107,17 @@ public class Route {
         dateEnd = timeMillis;
     }
 
-    public static Route fromDBCursor(Cursor cursor){
+    public static Route fromDBCursor(Cursor cursor, boolean withUser){
         Route route = new Route();
         route.setId(cursor.getLong(cursor.getColumnIndex(RouteEntry._ID)));
         route.setDescription(cursor.getString(cursor.getColumnIndex(RouteEntry.COLUMN_DESCRIPTION)));
         route.setDateStart(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_DATE_START)));
         route.setDateEnd(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_DATE_END)));
+        if(withUser){
+            route.user = new User();
+            route.user.setId(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_USER_KEY)));
+            route.user.setUsername(cursor.getString(cursor.getColumnIndex(UserEntry.COLUMN_USERNAME_ALIAS)));
+        }
         return route;
     }
 }

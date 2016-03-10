@@ -60,5 +60,9 @@ public class RoutesContract {
     public static final class UserEntry implements BaseColumns {
         public static final String TABLE_NAME = "users";
         public static final String COLUMN_USERNAME = "name";
+
+        //used only as alias to column "name" when table "users" is joined with other tables:
+        //SELECT routes.*, users.name AS username FROM routes
+        public static final String COLUMN_USERNAME_ALIAS = "username";
     }
 }
