@@ -19,11 +19,13 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -31,6 +33,7 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import ca.uwaterloo.magic.goodhikes.data.Route;
@@ -50,7 +53,7 @@ public class MapsActivity extends AppCompatActivity
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
     private ImageButton mGPSTrackingButton, mSettingsButton, mHistoryButton;
-    private Route currentRoute, latestRoute;
+    private Route latestRoute;
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
 
@@ -77,7 +80,6 @@ public class MapsActivity extends AppCompatActivity
         setContentView(R.layout.activity_maps);
         database = RoutesDatabaseManager.getInstance(this);
         application = (GoodHikesApplication) getApplicationContext();
-        latestRoute = database.getLatestRoute(application.currentUser);
 
         // Kill activity if logging out
         IntentFilter filter = new IntentFilter("logout");
@@ -111,6 +113,8 @@ public class MapsActivity extends AppCompatActivity
         mFilter = new IntentFilter(GPSLoggingService.locationUpdateCommand);
         mGPSUpdatesReceiver = new GPSUpdatesReceiver();
         mConnection = new GPSLoggingServiceConnection();
+        latestRoute = database.getLatestRoute(application.currentUser);
+        clearMap();
         LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
         startService(new Intent(this, GPSLoggingService.class));
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; MapActivity started");
@@ -174,7 +178,6 @@ public class MapsActivity extends AppCompatActivity
         settings.setScrollGesturesEnabled(true);
         updateMapType();
         enableMyLocation();
-        initVisualTrace();
     }
 
     @Override
@@ -200,7 +203,7 @@ public class MapsActivity extends AppCompatActivity
         mLoggingService.updateGPSfrequency();
         LatLng coordinates = new LatLng(location.getLatitude(), location.getLongitude());
         mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinates));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(15.0f));
+//        mMap.animateCamera(CameraUpdateFactory.zoomTo(15.0f));
 
         String mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
         System.out.println("location update:" + mLastUpdateTime);
@@ -215,7 +218,7 @@ public class MapsActivity extends AppCompatActivity
                 location = (Location) intent.getExtras().get(GPSLoggingService.locationUpdateCommand);
                 updateLocation(location);
             }
-            drawTrace();
+            drawTrace(mLoggingService.currentRoute);
             Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Location update received by UI");
         }
 
@@ -226,9 +229,14 @@ public class MapsActivity extends AppCompatActivity
         public void onServiceConnected(ComponentName className, IBinder binder) {
             mLoggingService = ((GPSLoggingService.LoggingBinder) binder).getService();
             setTrackingButtonIcon();
-            currentRoute = mLoggingService.currentRoute;
-            mLoggingService.broadcastLastKnownLocation();
+//            mLoggingService.broadcastLastKnownLocation();
 
+            if (!mLoggingService.isTrackingActive()) {
+                clearMap();
+                initVisualTrace();
+                drawTrace(latestRoute);
+                moveMapCameraToRoute(latestRoute);
+            }
         }
         public void onServiceDisconnected(ComponentName className) {}
     }
@@ -242,6 +250,7 @@ public class MapsActivity extends AppCompatActivity
                         mLoggingService.startLocationTracking();
                         mGPSTrackingButton.setImageResource(R.drawable.ic_pause_white_18dp);
                         clearMap();
+                        initVisualTrace();
                     } else {
                         mLoggingService.stopLocationTracking();
                         mGPSTrackingButton.setImageResource(R.drawable.ic_directions_run_white_18dp);
@@ -280,19 +289,21 @@ public class MapsActivity extends AppCompatActivity
         visualRouteTrace.setVisible(true);
     }
 
-    private void drawTrace(){
-        if(currentRoute ==null) return;
-        visualRouteTrace.setPoints(currentRoute.getPointsCoordinates());
+    private void drawTrace(Route route){
+        if(route ==null) return;
+        if(visualRouteTrace==null) initVisualTrace();
+        visualRouteTrace.setPoints(route.getPointsCoordinates());
 
-        if(currentRoute.size()>0 && initRoutePointMarker==null){
+        if(route.size()>0 && initRoutePointMarker==null){
             initRoutePointMarker = mMap.addMarker(
-                    new MarkerOptions().position(currentRoute.getStartCoordinates()).title("Start"));
+                    new MarkerOptions().position(route.getStartCoordinates()).title("Start"));
         }
 
-        if (currentRoute.size()>1){
+        if (route.size()>1){
             if(lastRoutePointMarker!=null) lastRoutePointMarker.remove();
-            lastRoutePointMarker =  mMap.addMarker(
-                    new MarkerOptions().position(currentRoute.getLastCoordinates()).title("Current Position"));
+            lastRoutePointMarker =  mMap.addMarker(new MarkerOptions()
+                    .position(route.getLastCoordinates())
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
         }
     }
 
@@ -305,5 +316,20 @@ public class MapsActivity extends AppCompatActivity
             lastRoutePointMarker.remove();
             lastRoutePointMarker=null;
         }
+        if(visualRouteTrace!=null){
+            visualRouteTrace.remove();
+        }
+    }
+
+    private void moveMapCameraToRoute(Route route){
+        final int padding = 100; // offset from edges of the map in pixels
+        final int animationDuration = 2000;
+        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(route.getLatLngBounds(), padding);
+        mMap.animateCamera(cu, animationDuration, new GoogleMap.CancelableCallback() {
+            @Override
+            public void onFinish() {}
+            @Override
+            public void onCancel() {}
+        });
     }
 }

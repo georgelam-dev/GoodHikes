@@ -167,7 +167,7 @@ public class GPSLoggingService extends Service
     */
     @Override
     public void onConnected(Bundle connectionHint) {
-        broadcastLastKnownLocation();
+//        broadcastLastKnownLocation();
         internalLooperThread = new LooperThread();
         internalLooperThread.start();
     }

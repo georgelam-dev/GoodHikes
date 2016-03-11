@@ -4,7 +4,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import ca.uwaterloo.magic.goodhikes.data.Route;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;

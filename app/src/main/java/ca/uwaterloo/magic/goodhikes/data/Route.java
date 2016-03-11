@@ -4,6 +4,8 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.location.Location;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -128,5 +130,13 @@ public class Route {
         HashMap routesRetrievalOptions = new HashMap();
         routesRetrievalOptions.put(UserEntry.COLUMN_USERNAME_ALIAS, String.valueOf(user.getUsername()));
         return routesRetrievalOptions;
+    }
+
+    public LatLngBounds getLatLngBounds(){
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        for(LatLng point : pointsCoordinates){
+            builder.include(point);
+        }
+        return builder.build();
     }
 }
