@@ -57,7 +57,7 @@ public class MapsActivity extends AppCompatActivity
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
 
-    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+    private final BroadcastReceiver logoutReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             stopGPSLoggingService();
@@ -80,10 +80,6 @@ public class MapsActivity extends AppCompatActivity
         setContentView(R.layout.activity_maps);
         database = RoutesDatabaseManager.getInstance(this);
         application = (GoodHikesApplication) getApplicationContext();
-
-        // Kill activity if logging out
-        IntentFilter filter = new IntentFilter("logout");
-        registerReceiver(receiver, filter);
 
         //Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -116,6 +112,7 @@ public class MapsActivity extends AppCompatActivity
         latestRoute = database.getLatestRoute(application.currentUser);
         clearMap();
         LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
+        registerReceiver(logoutReceiver, new IntentFilter("logout"));
         startService(new Intent(this, GPSLoggingService.class));
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; MapActivity started");
     }
@@ -124,6 +121,7 @@ public class MapsActivity extends AppCompatActivity
     protected void onStop() {
         super.onStop();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
+        unregisterReceiver(logoutReceiver);
     }
 
     @Override
@@ -178,6 +176,7 @@ public class MapsActivity extends AppCompatActivity
         settings.setScrollGesturesEnabled(true);
         updateMapType();
         enableMyLocation();
+        Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; onMapReady()");
     }
 
     @Override
@@ -204,9 +203,6 @@ public class MapsActivity extends AppCompatActivity
         LatLng coordinates = new LatLng(location.getLatitude(), location.getLongitude());
         mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinates));
 //        mMap.animateCamera(CameraUpdateFactory.zoomTo(15.0f));
-
-        String mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
-        System.out.println("location update:" + mLastUpdateTime);
     }
 
     public class GPSUpdatesReceiver extends BroadcastReceiver {
@@ -231,6 +227,7 @@ public class MapsActivity extends AppCompatActivity
             setTrackingButtonIcon();
 //            mLoggingService.broadcastLastKnownLocation();
 
+            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; GPS Logging service connected");
             if (!mLoggingService.isTrackingActive()) {
                 clearMap();
                 initVisualTrace();
