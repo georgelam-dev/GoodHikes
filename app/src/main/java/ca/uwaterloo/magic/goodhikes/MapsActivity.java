@@ -32,10 +32,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-
 import ca.uwaterloo.magic.goodhikes.data.Route;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
 
@@ -230,7 +226,6 @@ public class MapsActivity extends AppCompatActivity
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; GPS Logging service connected");
             if (!mLoggingService.isTrackingActive()) {
                 clearMap();
-                initVisualTrace();
                 drawTrace(latestRoute);
                 moveMapCameraToRoute(latestRoute);
             }
@@ -247,7 +242,6 @@ public class MapsActivity extends AppCompatActivity
                         mLoggingService.startLocationTracking();
                         mGPSTrackingButton.setImageResource(R.drawable.ic_pause_white_18dp);
                         clearMap();
-                        initVisualTrace();
                     } else {
                         mLoggingService.stopLocationTracking();
                         mGPSTrackingButton.setImageResource(R.drawable.ic_directions_run_white_18dp);
@@ -315,6 +309,7 @@ public class MapsActivity extends AppCompatActivity
         }
         if(visualRouteTrace!=null){
             visualRouteTrace.remove();
+            visualRouteTrace=null;
         }
     }
 
