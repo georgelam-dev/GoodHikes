@@ -319,9 +319,11 @@ public class MapsActivity extends AppCompatActivity
     }
 
     private void moveMapCameraToRoute(Route route){
-        final int padding = 100; // offset from edges of the map in pixels
-        final int animationDuration = 2000;
-        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(route.getLatLngBounds(), padding);
+        int padding = 100; // offset from edges of the map in pixels
+        int animationDuration = 2000;
+        int width = getResources().getDisplayMetrics().widthPixels;
+        int height = getResources().getDisplayMetrics().heightPixels;
+        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(route.getLatLngBounds(), width, height, padding);
         mMap.animateCamera(cu, animationDuration, new GoogleMap.CancelableCallback() {
             @Override
             public void onFinish() {}
