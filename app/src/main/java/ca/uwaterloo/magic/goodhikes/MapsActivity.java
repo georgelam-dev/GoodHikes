@@ -281,7 +281,7 @@ public class MapsActivity extends AppCompatActivity
     }
 
     private void drawTrace(Route route){
-        if(route ==null) return;
+        if(route==null) return;
         if(visualRouteTrace==null) initVisualTrace();
         visualRouteTrace.setPoints(route.getPointsCoordinates());
 

@@ -1,11 +1,15 @@
 package ca.uwaterloo.magic.goodhikes.data;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.location.Location;
+import android.text.format.Time;
+
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -108,6 +112,35 @@ public class Route {
     // stored as long in milliseconds since the epoch
     public void setDateEnd(long timeMillis){
         dateEnd = timeMillis;
+    }
+
+    public String getDateStartString(){
+        return getFormattedDate(dateStart);
+    }
+
+    public String getTimeStart(){
+        return getFormattedTime(dateStart);
+    }
+
+    public String getTimeEnd(){
+        return getFormattedTime(dateEnd);
+    }
+
+    private static String getFormattedDate(long dateInMillis) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd"); //Mon Jun 3
+        String dateString = dateFormat.format(dateInMillis);
+        return dateString;
+    }
+
+    private static String getFormattedTime(long dateInMillis) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("KK:mm:ss a"); //05:30:20 PM
+        String dateString = dateFormat.format(dateInMillis);
+        return dateString;
+    }
+
+    public String getDurationString(){
+        long duration = (dateEnd-dateStart)/1000;
+        return String.format("%02d:%02d:%02d", duration/3600, (duration%3600)/60, (duration%60));
     }
 
     public static Route fromDBCursor(Cursor cursor, boolean withUser){

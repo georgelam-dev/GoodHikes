@@ -20,4 +20,14 @@
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
+    <style name="RoutesListActivity" parent="Theme.AppCompat.Light">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="android:textColorPrimary">@color/white</item>
+    </style>
+
+    <style name="RoutesListStyle" parent="Theme.AppCompat.Light">
+        <item name="android:textColorPrimary">@color/black</item>
+    </style>
+
 </resources>

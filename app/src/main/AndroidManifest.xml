@@ -62,7 +62,9 @@
         </activity>
         <activity
             android:name=".HistoryActivity"
-            android:parentActivityName=".MapsActivity">
+            android:parentActivityName=".MapsActivity"
+            android:theme="@style/RoutesListActivity"
+            android:label="Routes history">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="ca.uwaterloo.magic.goodhikes.MapsActivity" />

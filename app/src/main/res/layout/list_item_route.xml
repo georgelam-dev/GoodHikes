@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="?android:attr/listPreferredItemHeight"
+    android:orientation="horizontal">
+
+    <LinearLayout
+        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_weight="4"
+        android:orientation="vertical"
+        android:paddingRight="3dp">
+
+        <TextView
+            android:id="@+id/list_item_descr_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed"
+            android:text="Route description"
+            android:textSize="20sp"/>
+
+        <TextView
+            android:id="@+id/list_item_date_on"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed"
+            android:textAppearance="?android:textAppearanceSmall"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="4"
+        android:layout_gravity="left"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:layout_gravity="left"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/list_item_date_from_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:text="From:"
+                android:textAppearance="?android:textAppearanceSmall"/>
+
+            <TextView
+                android:id="@+id/list_item_date_to_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:text="To:"
+                android:textAppearance="?android:textAppearanceSmall"/>
+
+            <TextView
+                android:id="@+id/list_item_duration_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:text="Duration:"
+                android:textAppearance="?android:textAppearanceSmall"/>
+
+            <TextView
+                android:id="@+id/list_item_points_count_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:text="Routepoints:"
+                android:textAppearance="?android:textAppearanceSmall"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/list_item_date_from"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:text="date_from"
+                android:layout_gravity="right"
+                android:textAppearance="?android:textAppearanceSmall"/>
+
+            <TextView
+                android:id="@+id/list_item_date_to"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:text="date_to"
+                android:layout_gravity="right"
+                android:textAppearance="?android:textAppearanceSmall"/>
+
+            <TextView
+                android:id="@+id/list_item_duration_textview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:text="duration"
+                android:layout_gravity="right"
+                android:textAppearance="?android:textAppearanceSmall"/>
+
+            <TextView
+                android:id="@+id/list_item_points_count_textview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:text="routepoints"
+                android:layout_gravity="right"
+                android:textAppearance="?android:textAppearanceSmall"/>
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_weight="1">
+
+        <ImageView
+            android:id="@+id/list_item_delete_icon"
+            android:src="@drawable/icon_trash"
+            android:layout_gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </FrameLayout>
+
+</LinearLayout>
