@@ -1,10 +1,8 @@
 package ca.uwaterloo.magic.goodhikes.data;
 
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.location.Location;
-import android.text.format.Time;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;

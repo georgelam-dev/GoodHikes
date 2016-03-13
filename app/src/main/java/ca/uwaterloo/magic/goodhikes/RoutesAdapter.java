@@ -14,7 +14,7 @@ import ca.uwaterloo.magic.goodhikes.data.Route;
 
 public class RoutesAdapter extends ArrayAdapter<Route> {
 
-     // Cache of the children views for a route list item
+    // Cache of the children views for a route list item
     public static class ViewHolder {
         public final TextView descriptionView, durationView, dateOnView,
                 dateFromView, dateToView, pointsCountView;

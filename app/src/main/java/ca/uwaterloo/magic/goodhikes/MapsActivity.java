@@ -33,6 +33,7 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import ca.uwaterloo.magic.goodhikes.data.Route;
+import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
 
 public class MapsActivity extends AppCompatActivity
@@ -49,9 +50,12 @@ public class MapsActivity extends AppCompatActivity
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
     private ImageButton mGPSTrackingButton, mSettingsButton, mHistoryButton;
-    private Route latestRoute;
+    private Route selectedRoute;
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
+
+    //Identifiers for opening other activities and returning results to MapsActivity
+    private final int PICK_ROUTE_REQUEST = 1;
 
     private final BroadcastReceiver logoutReceiver = new BroadcastReceiver() {
         @Override
@@ -87,6 +91,11 @@ public class MapsActivity extends AppCompatActivity
         mHistoryButton = (ImageButton) findViewById(R.id.history_button);
         mGPSTrackingButton = (ImageButton) findViewById(R.id.gps_tracking_control_button);
         attachUICallbacks();
+
+        if(savedInstanceState!=null){
+            long routeId = savedInstanceState.getLong(RouteEntry._ID);
+            selectedRoute = database.getRoute(routeId);
+        }
     }
 
     //updateMapType changes the map type when the setting is changed.
@@ -105,8 +114,9 @@ public class MapsActivity extends AppCompatActivity
         mFilter = new IntentFilter(GPSLoggingService.locationUpdateCommand);
         mGPSUpdatesReceiver = new GPSUpdatesReceiver();
         mConnection = new GPSLoggingServiceConnection();
-        latestRoute = database.getLatestRoute(application.currentUser);
-        clearMap();
+        if(selectedRoute==null)
+            selectedRoute = database.getLatestRoute(application.currentUser);
+//        clearMap();
         LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
         registerReceiver(logoutReceiver, new IntentFilter("logout"));
         startService(new Intent(this, GPSLoggingService.class));
@@ -131,15 +141,24 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    /*
+   /*
     * Unbinding GPS service in onPause, so that there are always matching pairs of bind/unbind calls.
     * */
-
     @Override
     protected void onPause() {
         super.onPause();
         unbindService(mConnection);
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Unbinding from GPS service");
+    }
+
+   /*
+    * When display is rotated, the currently selected route needs to be saved.
+    * */
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        if(selectedRoute!=null)
+            outState.putLong(RouteEntry._ID, selectedRoute.getId());
+        super.onSaveInstanceState(outState);
     }
 
     /*
@@ -224,11 +243,8 @@ public class MapsActivity extends AppCompatActivity
 //            mLoggingService.broadcastLastKnownLocation();
 
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; GPS Logging service connected");
-            if (!mLoggingService.isTrackingActive()) {
-                clearMap();
-                drawTrace(latestRoute);
-                moveMapCameraToRoute(latestRoute);
-            }
+            if (!mLoggingService.isTrackingActive())
+                drawSelectedRoute();
         }
         public void onServiceDisconnected(ComponentName className) {}
     }
@@ -258,9 +274,29 @@ public class MapsActivity extends AppCompatActivity
         mHistoryButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(getApplicationContext(), HistoryActivity.class));
+                startActivityForResult(new Intent(getApplicationContext(), HistoryActivity.class),
+                        PICK_ROUTE_REQUEST);
             }
         });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        if(requestCode==RESULT_CANCELED) return;
+        if(requestCode==PICK_ROUTE_REQUEST){
+            if (resultCode == RESULT_OK) {
+                long routeId = data.getLongExtra(RouteEntry._ID, -1);
+                selectedRoute = database.getRoute(routeId);
+                if (!mLoggingService.isTrackingActive())
+                    drawSelectedRoute();
+            }
+        }
+    }
+
+    private void drawSelectedRoute(){
+        clearMap();
+        drawTrace(selectedRoute);
+        moveMapCameraToRoute(selectedRoute);
     }
 
     private void setTrackingButtonIcon(){
@@ -294,7 +330,8 @@ public class MapsActivity extends AppCompatActivity
             if(lastRoutePointMarker!=null) lastRoutePointMarker.remove();
             lastRoutePointMarker =  mMap.addMarker(new MarkerOptions()
                     .position(route.getLastCoordinates())
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                    .title("End"));
         }
     }
 

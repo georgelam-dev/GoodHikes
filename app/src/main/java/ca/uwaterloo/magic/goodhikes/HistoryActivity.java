@@ -1,5 +1,6 @@
 package ca.uwaterloo.magic.goodhikes;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -9,6 +10,7 @@ import android.widget.ListView;
 import java.util.ArrayList;
 
 import ca.uwaterloo.magic.goodhikes.data.Route;
+import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
 
 public class HistoryActivity extends AppCompatActivity {
@@ -37,7 +39,10 @@ public class HistoryActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 Route route = (Route) adapterView.getItemAtPosition(position);
                 if (route != null) {
-//                    ((Callback) getActivity()).onItemSelected();
+                    Intent intent = new Intent();
+                    intent.putExtra(RouteEntry._ID, route.getId());
+                    setResult(RESULT_OK, intent);
+                    finish();
                 }
                 mPosition = position;
             }
