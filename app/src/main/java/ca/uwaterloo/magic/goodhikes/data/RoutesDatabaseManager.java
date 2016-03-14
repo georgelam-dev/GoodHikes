@@ -352,4 +352,19 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         }
         return locations;
     }
+
+    public int deleteRoute(long routeId){
+        deleteLocations(routeId);
+        SQLiteDatabase db = getWritableDatabase();
+        String whereQuery = RouteEntry._ID+" = ?";
+        return db.delete(RouteEntry.TABLE_NAME, whereQuery, new String[]{String.valueOf(routeId)});
+    }
+
+    public int deleteLocations(long routeId) {
+        int result=-1;
+        SQLiteDatabase db = getWritableDatabase();
+        String whereQuery = LocationEntry.COLUMN_ROUTE_KEY+" = ?";
+        result = db.delete(LocationEntry.TABLE_NAME, whereQuery, new String[]{String.valueOf(routeId)});
+        return result;
+    }
 }

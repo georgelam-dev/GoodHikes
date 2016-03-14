@@ -1,6 +1,10 @@
 package ca.uwaterloo.magic.goodhikes;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -53,6 +57,46 @@ public class RoutesAdapter extends ArrayAdapter<Route> {
         viewHolder.dateFromView.setText(route.getTimeStart());
         viewHolder.dateToView.setText(route.getTimeEnd());
         viewHolder.pointsCountView.setText(String.valueOf(route.size()));
+        viewHolder.iconDeleteItemView.setOnClickListener(new DeleteIconClickCallback(position));
+
         return convertView;
     }
+
+    private class DeleteIconClickCallback implements View.OnClickListener {
+        private final int position;
+        public DeleteIconClickCallback(int position) {
+            this.position = position;
+        }
+
+        @Override
+        public void onClick(View v) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
+            DialogInterface.OnClickListener deleteIconDialogCallback = new DeleteIconDialogCallback(position);
+            builder.setMessage("Are you sure?")
+                    .setPositiveButton("Yes", deleteIconDialogCallback)
+                    .setNegativeButton("No", deleteIconDialogCallback).show();
+        }
+
+    }
+
+    private class DeleteIconDialogCallback implements DialogInterface.OnClickListener {
+        private final int position;
+        public DeleteIconDialogCallback(int position) {
+            this.position = position;
+        }
+
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            switch (which){
+            case DialogInterface.BUTTON_POSITIVE:
+                Intent intent = new Intent(HistoryActivity.DELETE_ROUTE);
+                intent.putExtra(HistoryActivity.POSITION_ID, position);
+                LocalBroadcastManager.getInstance(getContext()).sendBroadcast(intent);
+                break;
+
+            case DialogInterface.BUTTON_NEGATIVE:
+                break;
+            }
+        }
+    };
 }
