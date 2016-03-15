@@ -35,7 +35,7 @@ public class GPSLoggingService extends Service
     public static final String locationUpdateCommand = "ca.uwaterloo.magic.goodhikes.location.update";
     private final IBinder mBinder = new LoggingBinder();
     private LooperThread internalLooperThread;
-    private boolean mTrackingIsActive=false;
+    private boolean mTrackingIsActive=false, trackingIsPaused;
     public Route currentRoute;
     private GoodHikesApplication application;
     private RoutesDatabaseManager database;
@@ -53,6 +53,14 @@ public class GPSLoggingService extends Service
     public void stopLocationTracking() {
         sendCommandToLooperThread(new Intent(GPSTrackingCommands.STOP));
         mTrackingIsActive=false;
+    }
+
+    public void setTrackingOnPause(boolean value) {
+        trackingIsPaused=value;
+    }
+
+    public boolean isTrackingOnPause() {
+        return trackingIsPaused;
     }
 
     public void saveRoute() {
@@ -152,7 +160,11 @@ public class GPSLoggingService extends Service
                     mGoogleApiClient, mLocationRequest, this, internalLooperThread.mLooper);
             mTrackingIsActive=true;
 
-            currentRoute = new Route(application.currentUser);
+            if(trackingIsPaused){
+                trackingIsPaused=false;
+            }else{
+                currentRoute = new Route(application.currentUser);
+            }
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Starting location tracking in looper thread");
         }
     }

@@ -39,6 +39,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.util.HashMap;
+
 import ca.uwaterloo.magic.goodhikes.data.Route;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
@@ -250,7 +252,7 @@ public class MapsActivity extends AppCompatActivity
 //            mLoggingService.broadcastLastKnownLocation();
 
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; GPS Logging service connected");
-            if (!mLoggingService.isTrackingActive())
+            if (!mLoggingService.isTrackingActive() && !mLoggingService.isTrackingOnPause())
                 drawSelectedRoute();
         }
         public void onServiceDisconnected(ComponentName className) {}
@@ -262,13 +264,14 @@ public class MapsActivity extends AppCompatActivity
             public void onClick(View v) {
                 if(mLoggingService!=null) {
                     if (!mLoggingService.isTrackingActive()) {
+                        if(mLoggingService.isTrackingOnPause()==false) clearMap();
                         mLoggingService.startLocationTracking();
                         setTrackingButtonIcon();
-                        clearMap();
+
                     } else {
                         mLoggingService.stopLocationTracking();
                         setTrackingButtonIcon();
-                        showSaveRouteDialog();
+                        showStopTrackingDialog();
                     }
                 }
             }
@@ -373,6 +376,12 @@ public class MapsActivity extends AppCompatActivity
         saveRouteDialog.show(fm, "saveRouteDialog");
     }
 
+    private void showStopTrackingDialog() {
+        FragmentManager fm = getSupportFragmentManager();
+        StopTrackingDialogFragment dialog = new StopTrackingDialogFragment();
+        dialog.show(fm, "stopTrackingDialog");
+    }
+
     public class SaveRouteDialogFragment extends DialogFragment {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -402,5 +411,25 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-
+    public class StopTrackingDialogFragment extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            LayoutInflater inflater = getActivity().getLayoutInflater();
+            builder.setTitle(R.string.stop_tracking_dialog)
+                    .setPositiveButton(R.string.stop_tracking, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            showSaveRouteDialog();
+                        }
+                    })
+                    .setNegativeButton(R.string.pause_tracking, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            mLoggingService.setTrackingOnPause(true);
+                            Toast.makeText(getActivity(), "Route tracking is paused", Toast.LENGTH_SHORT).show();
+                            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Tracking is paused");
+                        }
+                    });
+            return builder.create();
+        }
+    }
 }
