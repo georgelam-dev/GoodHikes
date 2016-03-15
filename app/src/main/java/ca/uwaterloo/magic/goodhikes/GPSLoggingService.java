@@ -47,10 +47,16 @@ public class GPSLoggingService extends Service
 
     public void startLocationTracking() {
         sendCommandToLooperThread(new Intent(GPSTrackingCommands.START));
+        mTrackingIsActive=true;
     }
 
     public void stopLocationTracking() {
         sendCommandToLooperThread(new Intent(GPSTrackingCommands.STOP));
+        mTrackingIsActive=false;
+    }
+
+    public void saveRoute() {
+        database.insertRoute(currentRoute);
     }
 
     private void sendCommandToLooperThread(Intent command){
@@ -154,9 +160,8 @@ public class GPSLoggingService extends Service
     private void stopLocationTrackingInLooperThread() {
         LocationServices.FusedLocationApi.removeLocationUpdates(
                 mGoogleApiClient, this);
-        mTrackingIsActive=false;
+        mTrackingIsActive = false;
         currentRoute.setDateEnd(System.currentTimeMillis());
-        database.insertRoute(currentRoute);
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Stopped location tracking in looper thread");
     }
 
@@ -230,5 +235,10 @@ public class GPSLoggingService extends Service
             stopLocationTrackingInLooperThread();
         }
 
+    }
+
+    public int getTrackingButtonIcon(){
+        return isTrackingActive() ? R.drawable.ampelmann_red :
+                R.drawable.ampelmann_green;
     }
 }

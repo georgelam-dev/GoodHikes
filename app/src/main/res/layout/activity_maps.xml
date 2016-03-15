@@ -65,13 +65,15 @@
         android:padding="0dp">
 
         <ImageButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
             android:id="@+id/gps_tracking_control_button"
-            android:src="@drawable/ic_directions_run_white_18dp"
-            android:scaleType="center"
+            android:src="@drawable/ampelmann_green"
+            android:scaleType="centerInside"
             android:background="#00000000"
-            android:padding="15dp" />
+            android:padding="0dp"
+            android:layout_marginLeft="10dp"
+            android:layout_gravity="center" />
 
         <ImageButton
             android:layout_width="wrap_content"

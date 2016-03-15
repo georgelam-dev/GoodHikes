@@ -1,8 +1,10 @@
 package ca.uwaterloo.magic.goodhikes;
 
+import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -12,10 +14,15 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
@@ -256,11 +263,12 @@ public class MapsActivity extends AppCompatActivity
                 if(mLoggingService!=null) {
                     if (!mLoggingService.isTrackingActive()) {
                         mLoggingService.startLocationTracking();
-                        mGPSTrackingButton.setImageResource(R.drawable.ic_pause_white_18dp);
+                        setTrackingButtonIcon();
                         clearMap();
                     } else {
                         mLoggingService.stopLocationTracking();
-                        mGPSTrackingButton.setImageResource(R.drawable.ic_directions_run_white_18dp);
+                        setTrackingButtonIcon();
+                        showSaveRouteDialog();
                     }
                 }
             }
@@ -300,13 +308,8 @@ public class MapsActivity extends AppCompatActivity
     }
 
     private void setTrackingButtonIcon(){
-        if(mLoggingService!=null) {
-            if (mLoggingService.isTrackingActive()) {
-                mGPSTrackingButton.setImageResource(R.drawable.ic_pause_white_18dp);
-            } else {
-                mGPSTrackingButton.setImageResource(R.drawable.ic_directions_run_white_18dp);
-            }
-        }
+        if(mLoggingService!=null)
+            mGPSTrackingButton.setImageResource(mLoggingService.getTrackingButtonIcon());
     }
 
     private void initVisualTrace(){
@@ -363,4 +366,41 @@ public class MapsActivity extends AppCompatActivity
             public void onCancel() {}
         });
     }
+
+    private void showSaveRouteDialog() {
+        FragmentManager fm = getSupportFragmentManager();
+        SaveRouteDialogFragment saveRouteDialog = new SaveRouteDialogFragment();
+        saveRouteDialog.show(fm, "saveRouteDialog");
+    }
+
+    public class SaveRouteDialogFragment extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            LayoutInflater inflater = getActivity().getLayoutInflater();
+            builder.setView(inflater.inflate(R.layout.dialog_save_route, null))
+                    .setTitle(R.string.saving_route)
+                    .setPositiveButton(R.string.proceed, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            EditText descriptionField = (EditText) ((Dialog) dialog).findViewById(R.id.description);
+                            String description = descriptionField.getText().toString();
+                            mLoggingService.currentRoute.setDescription(description);
+                            mLoggingService.saveRoute();
+                            Toast.makeText(getActivity(), "Route saved", Toast.LENGTH_SHORT).show();
+                            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; route saved");
+                        }
+                    })
+                    .setNegativeButton(R.string.discard, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            clearMap();
+                            Toast.makeText(getActivity(), "Route discarded", Toast.LENGTH_SHORT).show();
+                            drawSelectedRoute();
+                            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; route discarded");
+                        }
+                    });
+            return builder.create();
+        }
+    }
+
+
 }

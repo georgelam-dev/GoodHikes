@@ -45,6 +45,9 @@
     <!-- Info Section in MapsActivity -->
     <string name="duration_label">Duration</string>
     <string name="distance_label">Distance</string>
-
+    <string name="saving_route">Saving new route</string>
+    <string name="proceed">Save</string>
+    <string name="discard">Discard</string>
+    <string name="description">Description</string>
 
 </resources>
