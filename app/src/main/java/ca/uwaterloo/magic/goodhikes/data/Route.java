@@ -18,6 +18,7 @@ public class Route {
     private long id;
     private ArrayList<LocationPoint> trace;
     private ArrayList<LatLng> pointsCoordinates;
+    private ArrayList<Milestone> milestones;
     private User user;
     private String description;
     private boolean privateRoute;
@@ -33,6 +34,7 @@ public class Route {
         this.user = user;
         this.trace = new ArrayList<LocationPoint>();
         this.pointsCoordinates = new ArrayList<LatLng>();
+        this.milestones = new ArrayList<Milestone>();
         this.description = "stub_descr";
         this.dateStart = System.currentTimeMillis();
         this.privateRoute = false;
@@ -55,10 +57,12 @@ public class Route {
         pointsCoordinates.add(pointCoordinates);
     }
 
-    public ArrayList<LocationPoint> getTrace(){
-        return trace;
+    public void addMilestone(String note){
+        Milestone milestone = new Milestone(getLastCoordinates(), note);
+        milestones.add(milestone);
     }
 
+    public ArrayList<LocationPoint> getTrace(){ return trace; }
     public void setTrace(ArrayList<LocationPoint> trace){
         this.trace = trace;
         this.pointsCoordinates = new ArrayList<LatLng>();
@@ -66,6 +70,11 @@ public class Route {
             LatLng pointCoordinates = new LatLng(locationPoint.getLatitude(), locationPoint.getLongitude());
             pointsCoordinates.add(pointCoordinates);
         }
+    }
+
+    public ArrayList<Milestone> getMilestones(){ return milestones; }
+    public void setMilestones(ArrayList<Milestone> milestones){
+        this.milestones = milestones;
     }
 
     public User getUser(){
@@ -160,6 +169,7 @@ public class Route {
         route.setDescription(cursor.getString(cursor.getColumnIndex(RouteEntry.COLUMN_DESCRIPTION)));
         route.setDateStart(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_DATE_START)));
         route.setDateEnd(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_DATE_END)));
+        route.setMilestones(new ArrayList<Milestone>());
         if(withUser){
             route.user = new User();
             route.user.setId(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_USER_KEY)));

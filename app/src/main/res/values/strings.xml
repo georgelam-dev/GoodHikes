@@ -53,5 +53,9 @@
     <string name="stop_tracking">Stop</string>
     <string name="pause_tracking">Pause</string>
     <string name="private_route">Private route?</string>
+    <string name="note">Note</string>
+    <string name="add_milestone">Add new milestone</string>
+    <string name="add">Add</string>
+    <string name="cancel">Cancel</string>
 
 </resources>

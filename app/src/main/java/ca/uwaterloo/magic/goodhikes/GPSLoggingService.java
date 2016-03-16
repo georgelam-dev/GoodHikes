@@ -253,4 +253,9 @@ public class GPSLoggingService extends Service
         return isTrackingActive() ? R.drawable.ampelmann_red :
                 R.drawable.ampelmann_green;
     }
+
+    public int getMilestoneButtonIcon(){
+        return isTrackingActive() ? R.drawable.ic_room_yellow_18dp :
+                R.drawable.ic_room_disable_18dp;
+    }
 }

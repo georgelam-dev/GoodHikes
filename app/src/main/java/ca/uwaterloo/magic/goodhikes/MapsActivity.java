@@ -11,6 +11,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -25,6 +26,7 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -40,8 +42,9 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 
+import ca.uwaterloo.magic.goodhikes.data.Milestone;
 import ca.uwaterloo.magic.goodhikes.data.Route;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
@@ -59,13 +62,15 @@ public class MapsActivity extends AppCompatActivity
     private IntentFilter mFilter;
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
-    private ImageButton mGPSTrackingButton, mSettingsButton, mHistoryButton;
+    private ImageButton mGPSTrackingButton, mMilestoneButton, mSettingsButton, mHistoryButton;
     private Route selectedRoute;
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
+    private ArrayList<Marker> milestonePointMarkers;
 
     //Identifiers for opening other activities and returning results to MapsActivity
     private final int PICK_ROUTE_REQUEST = 1;
+    private final int RESULT_LOAD_IMG = 2;
 
     private final BroadcastReceiver logoutReceiver = new BroadcastReceiver() {
         @Override
@@ -90,6 +95,7 @@ public class MapsActivity extends AppCompatActivity
         setContentView(R.layout.activity_maps);
         database = RoutesDatabaseManager.getInstance(this);
         application = (GoodHikesApplication) getApplicationContext();
+        milestonePointMarkers = new ArrayList<Marker>();
 
         //Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -100,6 +106,7 @@ public class MapsActivity extends AppCompatActivity
         mSettingsButton = (ImageButton) findViewById(R.id.settings_button);
         mHistoryButton = (ImageButton) findViewById(R.id.history_button);
         mGPSTrackingButton = (ImageButton) findViewById(R.id.gps_tracking_control_button);
+        mMilestoneButton = (ImageButton) findViewById(R.id.milestone_button);
         attachUICallbacks();
 
         if(savedInstanceState!=null){
@@ -285,6 +292,14 @@ public class MapsActivity extends AppCompatActivity
                 }
             }
         });
+        mMilestoneButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mLoggingService.isTrackingActive()) {
+                    showAddMilestoneDialog();
+                }
+            }
+        });
         mSettingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -311,6 +326,13 @@ public class MapsActivity extends AppCompatActivity
                     drawSelectedRoute();
             }
         }
+        if(requestCode==RESULT_LOAD_IMG){
+            if (resultCode == RESULT_OK) {
+                ImageView previewImage = (ImageView) findViewById(R.id.previewImage);
+                Uri selectedImage = data.getData();
+                previewImage.setImageURI(selectedImage);
+            }
+        }
     }
 
     private void drawSelectedRoute(){
@@ -321,8 +343,10 @@ public class MapsActivity extends AppCompatActivity
     }
 
     private void setTrackingButtonIcon(){
-        if(mLoggingService!=null)
+        if(mLoggingService!=null) {
             mGPSTrackingButton.setImageResource(mLoggingService.getTrackingButtonIcon());
+            mMilestoneButton.setImageResource(mLoggingService.getMilestoneButtonIcon());
+        }
     }
 
     private void initVisualTrace(){
@@ -349,6 +373,18 @@ public class MapsActivity extends AppCompatActivity
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                     .title("End"));
         }
+
+        for (Marker marker : milestonePointMarkers) {
+            marker.remove();
+        }
+        milestonePointMarkers.clear();
+        for (Milestone milestone : route.getMilestones()) {
+            milestonePointMarkers.add(mMap.addMarker(new MarkerOptions()
+                    .position(milestone.getLatLng())
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
+                    .title("Milestone")
+                    .snippet(milestone.getNote())));
+        }
     }
 
     private void clearMap(){
@@ -364,6 +400,10 @@ public class MapsActivity extends AppCompatActivity
             visualRouteTrace.remove();
             visualRouteTrace=null;
         }
+        for (Marker marker : milestonePointMarkers) {
+            marker.remove();
+        }
+        milestonePointMarkers.clear();
     }
 
     private void moveMapCameraToRoute(Route route){
@@ -371,13 +411,18 @@ public class MapsActivity extends AppCompatActivity
         int animationDuration = 2000;
         int width = getResources().getDisplayMetrics().widthPixels;
         int height = getResources().getDisplayMetrics().heightPixels;
-        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(route.getLatLngBounds(), width, height, padding);
-        mMap.animateCamera(cu, animationDuration, new GoogleMap.CancelableCallback() {
-            @Override
-            public void onFinish() {}
-            @Override
-            public void onCancel() {}
-        });
+        if (route.getPointsCoordinates().size() > 0) {
+            CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(route.getLatLngBounds(), width, height, padding);
+            mMap.animateCamera(cu, animationDuration, new GoogleMap.CancelableCallback() {
+                @Override
+                public void onFinish() {
+                }
+
+                @Override
+                public void onCancel() {
+                }
+            });
+        }
     }
 
     private void showSaveRouteDialog() {
@@ -390,6 +435,12 @@ public class MapsActivity extends AppCompatActivity
         FragmentManager fm = getSupportFragmentManager();
         StopTrackingDialogFragment dialog = new StopTrackingDialogFragment();
         dialog.show(fm, "stopTrackingDialog");
+    }
+
+    private void showAddMilestoneDialog() {
+        FragmentManager fm = getSupportFragmentManager();
+        AddMilestoneDialogFragment dialog = new AddMilestoneDialogFragment();
+        dialog.show(fm, "addMilestoneDialog");
     }
 
     public class SaveRouteDialogFragment extends DialogFragment {
@@ -440,6 +491,43 @@ public class MapsActivity extends AppCompatActivity
                             mLoggingService.setTrackingOnPause(true);
                             Toast.makeText(getActivity(), "Route tracking is paused", Toast.LENGTH_SHORT).show();
                             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Tracking is paused");
+                        }
+                    });
+            return builder.create();
+        }
+    }
+
+    public class AddMilestoneDialogFragment extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            /*Button addImageButton = (Button) findViewById(R.id.addImageButton);
+            addImageButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Create intent to Open Image applications like Gallery, Google Photos
+                    Intent galleryIntent = new Intent(Intent.ACTION_PICK,
+                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    startActivityForResult(galleryIntent, RESULT_LOAD_IMG);
+                }
+            });*/
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            LayoutInflater inflater = getActivity().getLayoutInflater();
+            builder.setView(inflater.inflate(R.layout.dialog_add_milestone, null))
+                    .setTitle(R.string.add_milestone)
+                    .setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            EditText noteField = (EditText) ((Dialog) dialog).findViewById(R.id.note);
+                            String note = noteField.getText().toString();
+                            mLoggingService.currentRoute.addMilestone(note);
+                            Toast.makeText(getActivity(), "Milestone added", Toast.LENGTH_SHORT).show();
+                            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; milestone added");
+                        }
+                    })
+                    .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            Toast.makeText(getActivity(), "Milestone cancelled", Toast.LENGTH_SHORT).show();
+                            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; milestone cancelled");
                         }
                     });
             return builder.create();
