@@ -22,6 +22,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -132,6 +133,14 @@ public class MapsActivity extends AppCompatActivity
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; MapActivity started");
     }
 
+
+
+    /**
+     * Back key destroys the current Activity, home key doesn't. In the Activity lyfecycle,
+     * pressing back calls all the way to current activity's onDestroy() method. On the other hand,
+     * pressing home pauses the Activity, which stays alive in background.
+     * http://stackoverflow.com/questions/6031052/difference-between-android-home-key-and-back-key-and-their-behaviour
+     */
     @Override
     protected void onStop() {
         super.onStop();
@@ -305,6 +314,7 @@ public class MapsActivity extends AppCompatActivity
     }
 
     private void drawSelectedRoute(){
+        if(selectedRoute==null || selectedRoute.getId()==-1) return;
         clearMap();
         drawTrace(selectedRoute);
         moveMapCameraToRoute(selectedRoute);
@@ -323,7 +333,7 @@ public class MapsActivity extends AppCompatActivity
     }
 
     private void drawTrace(Route route){
-        if(route==null) return;
+        if(route==null || route.getId()==-1) return;
         if(visualRouteTrace==null) initVisualTrace();
         visualRouteTrace.setPoints(route.getPointsCoordinates());
 
@@ -394,6 +404,9 @@ public class MapsActivity extends AppCompatActivity
                             EditText descriptionField = (EditText) ((Dialog) dialog).findViewById(R.id.description);
                             String description = descriptionField.getText().toString();
                             mLoggingService.currentRoute.setDescription(description);
+
+                            CheckBox privateCheckbox = (CheckBox) ((Dialog) dialog).findViewById(R.id.checkbox_private);
+                            mLoggingService.currentRoute.setPrivate(privateCheckbox.isChecked());
                             mLoggingService.saveRoute();
                             Toast.makeText(getActivity(), "Route saved", Toast.LENGTH_SHORT).show();
                             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; route saved");

@@ -52,5 +52,6 @@
     <string name="stop_tracking_dialog">Stop tracking?</string>
     <string name="stop_tracking">Stop</string>
     <string name="pause_tracking">Pause</string>
+    <string name="private_route">Private route?</string>
 
 </resources>

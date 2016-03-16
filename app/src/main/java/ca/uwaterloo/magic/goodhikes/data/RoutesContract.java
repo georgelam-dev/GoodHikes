@@ -7,17 +7,6 @@ import android.text.format.Time;
  * Defines table and column names for the routes database.
  */
 public class RoutesContract {
-
-    // To make it easy to query for the exact date, we normalize all dates that go into
-    // the database to the start of the the Julian day at UTC.
-    public static long normalizeDate(long startDate) {
-        // normalize the start date to the beginning of the (UTC) day
-        Time time = new Time();
-        time.set(startDate);
-        int julianDay = Time.getJulianDay(startDate, time.gmtoff);
-        return time.setJulianDay(julianDay);
-    }
-
     /*
         Inner class that defines the contents of the location table
      */
@@ -31,6 +20,8 @@ public class RoutesContract {
         // Date start/end, stored as long in milliseconds since the epoch
         public static final String COLUMN_DATE_START = "date_start";
         public static final String COLUMN_DATE_END = "date_end";
+
+        public static final String COLUMN_PRIVATE = "private";
     }
 
     /* Stores the following entities:
@@ -60,6 +51,9 @@ public class RoutesContract {
     public static final class UserEntry implements BaseColumns {
         public static final String TABLE_NAME = "users";
         public static final String COLUMN_USERNAME = "name";
+
+        //stores a 1/0 yes/no flag, if this a user currently logged in on this device
+        public static final String COLUMN_CURRENT = "current";
 
         //used only as alias to column "name" when table "users" is joined with other tables:
         //SELECT routes.*, users.name AS username FROM routes

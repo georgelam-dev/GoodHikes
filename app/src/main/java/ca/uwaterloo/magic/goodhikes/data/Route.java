@@ -20,6 +20,7 @@ public class Route {
     private ArrayList<LatLng> pointsCoordinates;
     private User user;
     private String description;
+    private boolean privateRoute;
 
     // Date start/end, stored as long in milliseconds since the epoch
     private long dateStart;
@@ -34,9 +35,18 @@ public class Route {
         this.pointsCoordinates = new ArrayList<LatLng>();
         this.description = "stub_descr";
         this.dateStart = System.currentTimeMillis();
+        this.privateRoute = false;
     }
 
     public Route() {}
+
+    public boolean isPrivate() {
+        return privateRoute;
+    }
+
+    public void setPrivate(boolean privateRoute) {
+        this.privateRoute = privateRoute;
+    }
 
     public void addPoint(Location location){
         LocationPoint locationPoint = new LocationPoint(location);
@@ -99,6 +109,9 @@ public class Route {
         values.put(RouteEntry.COLUMN_DESCRIPTION, description);
         values.put(RouteEntry.COLUMN_DATE_START, dateStart);
         values.put(RouteEntry.COLUMN_DATE_END, dateEnd);
+
+        int privateRouteInt = privateRoute==true ? 1 : 0;
+        values.put(RouteEntry.COLUMN_PRIVATE, privateRouteInt);
         return values;
     }
 
@@ -152,6 +165,9 @@ public class Route {
             route.user.setId(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_USER_KEY)));
             route.user.setUsername(cursor.getString(cursor.getColumnIndex(UserEntry.COLUMN_USERNAME_ALIAS)));
         }
+        boolean privateRoute = (cursor.getInt(cursor.getColumnIndex(RouteEntry.COLUMN_PRIVATE))==1)? true : false;
+        route.setPrivate(privateRoute);
+
         return route;
     }
 

@@ -27,7 +27,7 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
     protected static final String LOG_TAG = "RoutesDatabaseManager";
 
     // If you change the database schema, you must increment the database version.
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 3;
 
     static final String DATABASE_NAME = "routes.db";
     static final String DATABASE_NAME_TEST = "routes_test.db";
@@ -65,7 +65,8 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
         final String SQL_CREATE_USER_TABLE = "CREATE TABLE " + UserEntry.TABLE_NAME + " (" +
                 UserEntry._ID                 + " INTEGER PRIMARY KEY AUTOINCREMENT," +
-                UserEntry.COLUMN_USERNAME     + " TEXT NOT NULL " +
+                UserEntry.COLUMN_USERNAME     + " TEXT NOT NULL, " +
+                UserEntry.COLUMN_CURRENT      + " INTEGER DEFAULT 0 " +
                 " );";
 
         final String SQL_CREATE_ROUTE_TABLE = "CREATE TABLE " + RouteEntry.TABLE_NAME + " (" +
@@ -74,7 +75,8 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
                 RouteEntry.COLUMN_USER_KEY  + " INTEGER NOT NULL, " +
                 RouteEntry.COLUMN_DESCRIPTION  + " TEXT NOT NULL, " +
                 RouteEntry.COLUMN_DATE_START   + " INTEGER NOT NULL, " +
-                RouteEntry.COLUMN_DATE_END     + " INTEGER NOT NULL " +
+                RouteEntry.COLUMN_DATE_END     + " INTEGER NOT NULL, " +
+                RouteEntry.COLUMN_PRIVATE      + " INTEGER NOT NULL DEFAULT 0 " +
                 " );";
 
         final String SQL_CREATE_LOCATION_TABLE = "CREATE TABLE " + LocationEntry.TABLE_NAME + " (" +
@@ -255,6 +257,10 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
      */
     public Route getRoute(long routeId) {
         Route route = new Route();
+        if(routeId==-1){
+            route.setId(routeId);
+            return route;
+        }
         SQLiteDatabase db = getWritableDatabase();
 
         String routeSelectQuery = String.format(
