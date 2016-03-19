@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
@@ -511,7 +512,8 @@ public class MapsActivity extends AppCompatActivity
                         public void onClick(DialogInterface dialog, int id) {
                             EditText noteField = (EditText) ((Dialog) dialog).findViewById(R.id.note);
                             String note = noteField.getText().toString();
-                            mLoggingService.currentRoute.addMilestone(note, ((BitmapDrawable) previewImage.getDrawable()).getBitmap());
+                            Bitmap image = previewImage.getDrawable() == null ? null : ((BitmapDrawable) previewImage.getDrawable()).getBitmap();
+                            mLoggingService.currentRoute.addMilestone(note, image);
                             Toast.makeText(getActivity(), "Milestone added", Toast.LENGTH_SHORT).show();
                             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; milestone added");
                         }

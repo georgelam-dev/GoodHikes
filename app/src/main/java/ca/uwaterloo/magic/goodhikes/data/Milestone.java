@@ -64,7 +64,9 @@ public class Milestone {
         values.put(MilestoneEntry.COLUMN_NOTE,          this.note);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        this.image.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        if (image != null) {
+            this.image.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        }
         values.put(MilestoneEntry.COLUMN_IMAGE,         stream.toByteArray());
 
         return values;
