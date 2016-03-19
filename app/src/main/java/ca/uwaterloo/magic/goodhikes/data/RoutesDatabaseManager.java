@@ -15,6 +15,7 @@ import java.util.List;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.LocationEntry;
+import ca.uwaterloo.magic.goodhikes.data.RoutesContract.MilestoneEntry;
 
 /**
  * Manages device's database for routes data.
@@ -27,7 +28,7 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
     protected static final String LOG_TAG = "RoutesDatabaseManager";
 
     // If you change the database schema, you must increment the database version.
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
 
     static final String DATABASE_NAME = "routes.db";
     static final String DATABASE_NAME_TEST = "routes_test.db";
@@ -95,9 +96,24 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
                 RouteEntry.TABLE_NAME + " (" + RouteEntry._ID + ") " +
                 " );";
 
+        final String SQL_CREATE_MILESTONE_TABLE = "CREATE TABLE " + MilestoneEntry.TABLE_NAME + " (" +
+                MilestoneEntry._ID               + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                // the ID of the route entry associated with this milestone data
+                MilestoneEntry.COLUMN_ROUTE_KEY  + " INTEGER NOT NULL, " +
+                MilestoneEntry.COLUMN_COORD_LAT  + " REAL NOT NULL, " +
+                MilestoneEntry.COLUMN_COORD_LONG + " REAL NOT NULL, " +
+                MilestoneEntry.COLUMN_NOTE      + " TEXT, " +
+                MilestoneEntry.COLUMN_IMAGE    + " BLOB, " +
+
+
+                " FOREIGN KEY (" + MilestoneEntry.COLUMN_ROUTE_KEY + ") REFERENCES " +
+                RouteEntry.TABLE_NAME + " (" + RouteEntry._ID + ") " +
+                " );";
+
         sqLiteDatabase.execSQL(SQL_CREATE_USER_TABLE);
         sqLiteDatabase.execSQL(SQL_CREATE_ROUTE_TABLE);
         sqLiteDatabase.execSQL(SQL_CREATE_LOCATION_TABLE);
+        sqLiteDatabase.execSQL(SQL_CREATE_MILESTONE_TABLE);
     }
 
     @Override
@@ -107,6 +123,7 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + RouteEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + LocationEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + UserEntry.TABLE_NAME);
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + MilestoneEntry.TABLE_NAME);
         onCreate(sqLiteDatabase);
     }
 
@@ -120,6 +137,7 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
             long routeId = db.insertOrThrow(RouteEntry.TABLE_NAME, null, routeCV);
             route.setId(routeId);
             bulkInsertLocationPoints(route);
+            bulkInsertMilestones(route);
             db.setTransactionSuccessful();
         } catch (Exception e) {
             Log.d(LOG_TAG, "Error while trying to insert route into the db");
@@ -146,6 +164,30 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
             db.setTransactionSuccessful();
         } catch (Exception e) {
             Log.d(LOG_TAG, "Error while trying to bulk insert location points");
+        } finally {
+            db.endTransaction();
+        }
+        return returnCount;
+    }
+
+    public long bulkInsertMilestones(Route route) {
+        SQLiteDatabase db = getWritableDatabase();
+        int returnCount = 0;
+        long id;
+
+        db.beginTransaction();
+        try {
+            for(Milestone milestone : route.getMilestones()){
+                ContentValues milestoneCV = milestone.toContentValues();
+                milestoneCV.put(MilestoneEntry.COLUMN_ROUTE_KEY, route.getId());
+                id = db.insert(MilestoneEntry.TABLE_NAME, null, milestoneCV);
+                if (id != -1) {
+                    returnCount++;
+                }
+            }
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            Log.d(LOG_TAG, "Error while trying to bulk insert milestones");
         } finally {
             db.endTransaction();
         }
@@ -276,6 +318,7 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
             if (cursor.moveToFirst()) {
                 route = Route.fromDBCursor(cursor, true);
                 route.setTrace(getLocations(route.getId()));
+                route.setMilestones(getMilestones(route.getId()));
             }
         } finally {
             if (cursor != null && !cursor.isClosed()) {
@@ -359,8 +402,32 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         return locations;
     }
 
-    public int deleteRoute(long routeId){
+    // SELECT * FROM milestones WHERE route_id = ?
+    public ArrayList<Milestone> getMilestones(long routeId) {
+        ArrayList<Milestone> milestones = new ArrayList<>();
+        SQLiteDatabase db = getWritableDatabase();
+        String MILESTONES_SELECT_QUERY =
+                String.format("SELECT * FROM %s WHERE %s = ?",
+                        MilestoneEntry.TABLE_NAME, MilestoneEntry.COLUMN_ROUTE_KEY);
+        Cursor cursor = db.rawQuery(MILESTONES_SELECT_QUERY, new String[]{String.valueOf(routeId)});
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    milestones.add(Milestone.fromDBCursor(cursor));
+                } while(cursor.moveToNext());
+
+            }
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+        return milestones;
+    }
+
+    public int deleteRoute(long routeId) {
         deleteLocations(routeId);
+        deleteMilestones(routeId);
         SQLiteDatabase db = getWritableDatabase();
         String whereQuery = RouteEntry._ID+" = ?";
         return db.delete(RouteEntry.TABLE_NAME, whereQuery, new String[]{String.valueOf(routeId)});
@@ -371,6 +438,14 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         String whereQuery = LocationEntry.COLUMN_ROUTE_KEY+" = ?";
         result = db.delete(LocationEntry.TABLE_NAME, whereQuery, new String[]{String.valueOf(routeId)});
+        return result;
+    }
+
+    public int deleteMilestones(long routeId) {
+        int result=-1;
+        SQLiteDatabase db = getWritableDatabase();
+        String whereQuery = MilestoneEntry.COLUMN_ROUTE_KEY+" = ?";
+        result = db.delete(MilestoneEntry.TABLE_NAME, whereQuery, new String[]{String.valueOf(routeId)});
         return result;
     }
 }

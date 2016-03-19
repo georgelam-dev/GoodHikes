@@ -59,4 +59,17 @@ public class RoutesContract {
         //SELECT routes.*, users.name AS username FROM routes
         public static final String COLUMN_USERNAME_ALIAS = "username";
     }
+
+    public static final class MilestoneEntry implements BaseColumns {
+        public static final String TABLE_NAME = "milestones";
+
+        // Column with the foreign key into the routes table.
+        public static final String COLUMN_ROUTE_KEY = "route_id";
+
+        public static final String COLUMN_COORD_LAT = "coordinates_lat";
+        public static final String COLUMN_COORD_LONG = "coordinates_long";
+
+        public static final String COLUMN_NOTE = "note";
+        public static final String COLUMN_IMAGE = "image";
+    }
 }
