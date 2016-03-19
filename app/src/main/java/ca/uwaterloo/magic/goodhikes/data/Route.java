@@ -2,6 +2,7 @@ package ca.uwaterloo.magic.goodhikes.data;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.location.Location;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -57,8 +58,8 @@ public class Route {
         pointsCoordinates.add(pointCoordinates);
     }
 
-    public void addMilestone(String note){
-        Milestone milestone = new Milestone(getLastCoordinates(), note);
+    public void addMilestone(String note, Bitmap image){
+        Milestone milestone = new Milestone(getLastCoordinates(), note, image);
         milestones.add(milestone);
     }
 

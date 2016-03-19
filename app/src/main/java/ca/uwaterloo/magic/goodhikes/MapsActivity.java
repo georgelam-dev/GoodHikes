@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -23,6 +24,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -67,6 +69,7 @@ public class MapsActivity extends AppCompatActivity
     private Polyline visualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker;
     private ArrayList<Marker> milestonePointMarkers;
+    private ImageView previewImage;
 
     //Identifiers for opening other activities and returning results to MapsActivity
     private final int PICK_ROUTE_REQUEST = 1;
@@ -75,7 +78,8 @@ public class MapsActivity extends AppCompatActivity
     private final BroadcastReceiver logoutReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            stopGPSLoggingService();
+            mLoggingService.stopLocationTracking();
+            unregisterReceiver(logoutReceiver);
             finish();
         }
     };
@@ -152,7 +156,6 @@ public class MapsActivity extends AppCompatActivity
     protected void onStop() {
         super.onStop();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
-        unregisterReceiver(logoutReceiver);
     }
 
     @Override
@@ -194,7 +197,7 @@ public class MapsActivity extends AppCompatActivity
     * and tracking should continue running in the background, even if the app is put in the background.
     * */
 
-    public void stopGPSLoggingService(){
+    public void stopGPSLoggingService() {
         stopService(new Intent(this, GPSLoggingService.class));
     }
 
@@ -278,9 +281,9 @@ public class MapsActivity extends AppCompatActivity
         mGPSTrackingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mLoggingService!=null) {
+                if (mLoggingService != null) {
                     if (!mLoggingService.isTrackingActive()) {
-                        if(mLoggingService.isTrackingOnPause()==false) clearMap();
+                        if (mLoggingService.isTrackingOnPause() == false) clearMap();
                         mLoggingService.startLocationTracking();
                         setTrackingButtonIcon();
 
@@ -328,7 +331,6 @@ public class MapsActivity extends AppCompatActivity
         }
         if(requestCode==RESULT_LOAD_IMG){
             if (resultCode == RESULT_OK) {
-                ImageView previewImage = (ImageView) findViewById(R.id.previewImage);
                 Uri selectedImage = data.getData();
                 previewImage.setImageURI(selectedImage);
             }
@@ -500,36 +502,39 @@ public class MapsActivity extends AppCompatActivity
     public class AddMilestoneDialogFragment extends DialogFragment {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
-            /*Button addImageButton = (Button) findViewById(R.id.addImageButton);
-            addImageButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    // Create intent to Open Image applications like Gallery, Google Photos
-                    Intent galleryIntent = new Intent(Intent.ACTION_PICK,
-                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    startActivityForResult(galleryIntent, RESULT_LOAD_IMG);
-                }
-            });*/
-
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             LayoutInflater inflater = getActivity().getLayoutInflater();
-            builder.setView(inflater.inflate(R.layout.dialog_add_milestone, null))
+            View dialog = inflater.inflate(R.layout.dialog_add_milestone, null);
+            builder.setView(dialog)
                     .setTitle(R.string.add_milestone)
                     .setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
                             EditText noteField = (EditText) ((Dialog) dialog).findViewById(R.id.note);
                             String note = noteField.getText().toString();
-                            mLoggingService.currentRoute.addMilestone(note);
+                            mLoggingService.currentRoute.addMilestone(note, ((BitmapDrawable) previewImage.getDrawable()).getBitmap());
                             Toast.makeText(getActivity(), "Milestone added", Toast.LENGTH_SHORT).show();
                             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; milestone added");
                         }
                     })
                     .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
-                            Toast.makeText(getActivity(), "Milestone cancelled", Toast.LENGTH_SHORT).show();
                             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; milestone cancelled");
                         }
                     });
+
+            Button addImageButton = (Button) dialog.findViewById(R.id.addImageButton);
+            addImageButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Create intent to Open Image applications like Gallery, Google Photos
+                    Intent galleryIntent = new Intent(Intent.ACTION_PICK,
+                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    getActivity().startActivityForResult(galleryIntent, RESULT_LOAD_IMG);
+                }
+            });
+
+            previewImage = (ImageView) dialog.findViewById(R.id.previewImage);
+
             return builder.create();
         }
     }
