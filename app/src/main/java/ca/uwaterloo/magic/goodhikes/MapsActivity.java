@@ -30,6 +30,8 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -46,6 +48,8 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import ca.uwaterloo.magic.goodhikes.data.Milestone;
 import ca.uwaterloo.magic.goodhikes.data.Route;
@@ -55,7 +59,8 @@ import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
 public class MapsActivity extends AppCompatActivity
         implements
         OnMapReadyCallback,
-        GoogleMap.OnMyLocationButtonClickListener{
+        GoogleMap.OnMyLocationButtonClickListener,
+        GoogleMap.OnInfoWindowClickListener{
 
     protected GoogleMap mMap;
     private RoutesDatabaseManager database;
@@ -71,6 +76,7 @@ public class MapsActivity extends AppCompatActivity
     private Marker initRoutePointMarker, lastRoutePointMarker;
     private ArrayList<Marker> milestonePointMarkers;
     private ImageView previewImage;
+    private Map<String, Bitmap> markerImageMap;
 
     //Identifiers for opening other activities and returning results to MapsActivity
     private final int PICK_ROUTE_REQUEST = 1;
@@ -101,6 +107,7 @@ public class MapsActivity extends AppCompatActivity
         database = RoutesDatabaseManager.getInstance(this);
         application = (GoodHikesApplication) getApplicationContext();
         milestonePointMarkers = new ArrayList<Marker>();
+        markerImageMap = new HashMap<String, Bitmap>();
 
         //Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -214,6 +221,8 @@ public class MapsActivity extends AppCompatActivity
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setInfoWindowAdapter(new CustomInfoWindow());
+        mMap.setOnInfoWindowClickListener(this);
         UiSettings settings = mMap.getUiSettings();
         settings.setCompassEnabled(true);
         settings.setMapToolbarEnabled(true);
@@ -221,6 +230,41 @@ public class MapsActivity extends AppCompatActivity
         updateMapType();
         enableMyLocation();
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; onMapReady()");
+    }
+
+    @Override
+    public void onInfoWindowClick (Marker marker) {
+        //Toast.makeText(this, "Info Window Clicked", Toast.LENGTH_SHORT).show();
+    }
+
+    public class CustomInfoWindow implements GoogleMap.InfoWindowAdapter {
+        @Override
+        public View getInfoWindow(Marker marker) {
+            return null;
+        }
+
+        @Override
+        public View getInfoContents(Marker marker) {
+            if (!marker.getTitle().equals("Milestone")) {
+                return null;
+            }
+
+            View milestone = getLayoutInflater().inflate(R.layout.marker_info, null);
+            TextView windowtitle = (TextView) milestone.findViewById(R.id.milestone_title);
+            TextView windowdesc = (TextView) milestone.findViewById(R.id.milestone_desc);
+            ImageView windowimage = (ImageView) milestone.findViewById(R.id.milestone_image);
+
+            if (markerImageMap.get(marker.getId()) == null) {
+                LinearLayout window = (LinearLayout) milestone.findViewById(R.id.marker_window);
+                window.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            }
+
+            windowtitle.setText(marker.getTitle());
+            windowdesc.setText(marker.getSnippet());
+            windowimage.setImageBitmap(markerImageMap.get(marker.getId()));
+
+            return milestone;
+        }
     }
 
     @Override
@@ -381,12 +425,15 @@ public class MapsActivity extends AppCompatActivity
             marker.remove();
         }
         milestonePointMarkers.clear();
+        markerImageMap.clear();
         for (Milestone milestone : route.getMilestones()) {
-            milestonePointMarkers.add(mMap.addMarker(new MarkerOptions()
+            Marker marker = mMap.addMarker(new MarkerOptions()
                     .position(milestone.getLatLng())
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
                     .title("Milestone")
-                    .snippet(milestone.getNote())));
+                    .snippet(milestone.getNote()));
+            markerImageMap.put(marker.getId(), milestone.getImage());
+            milestonePointMarkers.add(marker);
         }
     }
 
