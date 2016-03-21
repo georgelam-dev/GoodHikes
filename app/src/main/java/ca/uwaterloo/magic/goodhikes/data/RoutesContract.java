@@ -1,7 +1,6 @@
 package ca.uwaterloo.magic.goodhikes.data;
 
 import android.provider.BaseColumns;
-import android.text.format.Time;
 
 /**
  * Defines table and column names for the routes database.
@@ -15,6 +14,7 @@ public class RoutesContract {
 
         // Column with the foreign key into the user table.
         public static final String COLUMN_USER_KEY = "user_id";
+        public static final String COLUMN_USERNAME = "user_name";
         public static final String COLUMN_DESCRIPTION = "description";
 
         // Date start/end, stored as long in milliseconds since the epoch
@@ -48,7 +48,7 @@ public class RoutesContract {
         public static final String COLUMN_ACCURACY = "accuracy";
     }
 
-    public static final class UserEntry implements BaseColumns {
+  /*  public static final class UserEntry implements BaseColumns {
         public static final String TABLE_NAME = "users";
         public static final String COLUMN_USERNAME = "name";
 
@@ -58,7 +58,7 @@ public class RoutesContract {
         //used only as alias to column "name" when table "users" is joined with other tables:
         //SELECT routes.*, users.name AS username FROM routes
         public static final String COLUMN_USERNAME_ALIAS = "username";
-    }
+    }*/
 
     public static final class MilestoneEntry implements BaseColumns {
         public static final String TABLE_NAME = "milestones";

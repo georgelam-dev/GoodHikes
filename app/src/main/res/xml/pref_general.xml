@@ -17,9 +17,23 @@
         android:entryValues="@array/update_frequency_values"
         android:defaultValue="3000"/>
 
+    <!-- Login button -->
+    <Preference
+        android:key="@string/login"
+        android:title="Login"
+        android:visibility="gone" />
+
+    <!-- Profile button -->
+    <Preference
+        android:key="@string/profile"
+        android:title="User Profile"
+        android:visibility="gone" />
+
+
     <!-- Logout button -->
     <Preference
         android:key="@string/logout"
-        android:title="Logout" />
+        android:title="Logout"
+        android:visibility="gone" />
 
 </PreferenceScreen>

@@ -17,9 +17,10 @@ import java.util.ArrayList;
 import ca.uwaterloo.magic.goodhikes.data.Route;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
+import ca.uwaterloo.magic.goodhikes.data.UserManager;
 
 public class HistoryActivity extends AppCompatActivity {
-    private GoodHikesApplication application;
+    private UserManager userManager;
     private RoutesDatabaseManager database;
     private ArrayList<Route> routes;
     private RoutesAdapter routesAdapter;
@@ -33,8 +34,8 @@ public class HistoryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_history);
         database = RoutesDatabaseManager.getInstance(this);
-        application = (GoodHikesApplication) getApplicationContext();
-        routes = database.getAllRoutes(Route.filterByUser(application.currentUser));
+        userManager = new UserManager(getApplicationContext());
+        routes = database.getAllRoutes(Route.filterByUser(userManager.getUser()));
         routesAdapter = new RoutesAdapter(this, routes);
         View rootView = findViewById(android.R.id.content);
 

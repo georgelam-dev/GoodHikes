@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
-import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
 
 public class Route {
     private long id;
@@ -173,8 +172,8 @@ public class Route {
         route.setMilestones(new ArrayList<Milestone>());
         if(withUser){
             route.user = new User();
-            route.user.setId(cursor.getLong(cursor.getColumnIndex(RouteEntry.COLUMN_USER_KEY)));
-            route.user.setUsername(cursor.getString(cursor.getColumnIndex(UserEntry.COLUMN_USERNAME_ALIAS)));
+            route.user.setId(cursor.getString(cursor.getColumnIndex(RouteEntry.COLUMN_USER_KEY)));
+            route.user.setUsername(cursor.getString(cursor.getColumnIndex(RouteEntry.COLUMN_USERNAME)));
         }
         boolean privateRoute = (cursor.getInt(cursor.getColumnIndex(RouteEntry.COLUMN_PRIVATE))==1)? true : false;
         route.setPrivate(privateRoute);
@@ -186,7 +185,7 @@ public class Route {
     //FIX: make sure that passed User object has a user_id assigned
     public static HashMap filterByUser(User user){
         HashMap routesRetrievalOptions = new HashMap();
-        routesRetrievalOptions.put(UserEntry.COLUMN_USERNAME_ALIAS, String.valueOf(user.getUsername()));
+        routesRetrievalOptions.put(RouteEntry.COLUMN_USERNAME, String.valueOf(user.getUsername()));
         return routesRetrievalOptions;
     }
 

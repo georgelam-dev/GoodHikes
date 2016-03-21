@@ -29,6 +29,14 @@
             android:fontFamily="sans-serif-condensed"
             android:textAppearance="?android:textAppearanceSmall"/>
 
+        <TextView
+            android:id="@+id/list_item_user_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed"
+            android:text="name"
+            android:textAppearance="?android:textAppearanceSmall"/>
+
     </LinearLayout>
 
     <LinearLayout

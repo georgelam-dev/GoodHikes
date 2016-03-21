@@ -12,10 +12,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
-import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.LocationEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.MilestoneEntry;
+import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 
 /**
  * Manages device's database for routes data.
@@ -28,7 +27,7 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
     protected static final String LOG_TAG = "RoutesDatabaseManager";
 
     // If you change the database schema, you must increment the database version.
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
 
     static final String DATABASE_NAME = "routes.db";
     static final String DATABASE_NAME_TEST = "routes_test.db";
@@ -64,16 +63,17 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        final String SQL_CREATE_USER_TABLE = "CREATE TABLE " + UserEntry.TABLE_NAME + " (" +
-                UserEntry._ID                 + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+/*        final String SQL_CREATE_USER_TABLE = "CREATE TABLE " + UserEntry.TABLE_NAME + " (" +
+                UserEntry._ID                 + " TEXT PRIMARY KEY," +
                 UserEntry.COLUMN_USERNAME     + " TEXT NOT NULL, " +
                 UserEntry.COLUMN_CURRENT      + " INTEGER DEFAULT 0 " +
                 " );";
-
+*/
         final String SQL_CREATE_ROUTE_TABLE = "CREATE TABLE " + RouteEntry.TABLE_NAME + " (" +
                 RouteEntry._ID                 + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                 // the ID of the user entry associated with this route
-                RouteEntry.COLUMN_USER_KEY  + " INTEGER NOT NULL, " +
+                RouteEntry.COLUMN_USER_KEY     + " TEXT NOT NULL, " +
+                RouteEntry.COLUMN_USERNAME     + " TEXT NOT NULL, " +
                 RouteEntry.COLUMN_DESCRIPTION  + " TEXT NOT NULL, " +
                 RouteEntry.COLUMN_DATE_START   + " INTEGER NOT NULL, " +
                 RouteEntry.COLUMN_DATE_END     + " INTEGER NOT NULL, " +
@@ -110,7 +110,7 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
                 RouteEntry.TABLE_NAME + " (" + RouteEntry._ID + ") " +
                 " );";
 
-        sqLiteDatabase.execSQL(SQL_CREATE_USER_TABLE);
+        //sqLiteDatabase.execSQL(SQL_CREATE_USER_TABLE);
         sqLiteDatabase.execSQL(SQL_CREATE_ROUTE_TABLE);
         sqLiteDatabase.execSQL(SQL_CREATE_LOCATION_TABLE);
         sqLiteDatabase.execSQL(SQL_CREATE_MILESTONE_TABLE);
@@ -122,24 +122,27 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         // Note that this only fires if you change the version number for your database.
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + RouteEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + LocationEntry.TABLE_NAME);
-        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + UserEntry.TABLE_NAME);
+        //sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + RoutesContract.UserEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + MilestoneEntry.TABLE_NAME);
         onCreate(sqLiteDatabase);
     }
 
-    public void insertRoute(Route route) {
+    public void insertRoute(Route route, User user) {
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
         try {
-            long userId = insertOrUpdateUser(route.getUser());
+            //String userId = insertOrUpdateUser(route.getUser());
+            String userId = user.getId();
             ContentValues routeCV = route.toContentValues();
             routeCV.put(RouteEntry.COLUMN_USER_KEY, userId);
+            routeCV.put(RouteEntry.COLUMN_USERNAME, user.getUsername());
             long routeId = db.insertOrThrow(RouteEntry.TABLE_NAME, null, routeCV);
             route.setId(routeId);
             bulkInsertLocationPoints(route);
             bulkInsertMilestones(route);
             db.setTransactionSuccessful();
         } catch (Exception e) {
+            Log.d(LOG_TAG, e.getMessage());
             Log.d(LOG_TAG, "Error while trying to insert route into the db");
         } finally {
             db.endTransaction();
@@ -194,9 +197,9 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         return returnCount;
     }
 
-    public long insertOrUpdateUser(User user) {
+/*    public String insertOrUpdateUser(User user) {
         SQLiteDatabase db = getWritableDatabase();
-        long userId = -1;
+        String userId = "0";
 
         db.beginTransaction();
         try {
@@ -220,16 +223,17 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         user.setId(userId);
         return userId;
     }
-
-    public long getUserId(User user) {
+*/
+/*
+    public String getUserId(User user) {
         SQLiteDatabase db = getWritableDatabase();
-        long userId = -1;
+        String userId = "0";
         String usersSelectQuery = String.format("SELECT %s FROM %s WHERE %s = ?",
                 UserEntry._ID, UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME);
         Cursor cursor = db.rawQuery(usersSelectQuery, new String[]{user.getUsername()});
         try {
             if (cursor.moveToFirst()) {
-                userId = cursor.getInt(0);
+                userId = cursor.getString(0);
             }
         } finally {
             if (cursor != null && !cursor.isClosed()) {
@@ -239,7 +243,8 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         user.setId(userId);
         return userId;
     }
-
+*/
+/*
     public User getUser(long id) {
         User user=new User();
         SQLiteDatabase db = getWritableDatabase();
@@ -258,6 +263,7 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         }
         return user;
     }
+*/
 
     /**
      * SELECT routes._id FROM routes
@@ -268,12 +274,16 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
     public long getLatestRouteId(User user) {
         SQLiteDatabase db = getWritableDatabase();
         long routeId = -1;
-        String routeSelectQuery = String.format("SELECT %s.%s FROM %s INNER JOIN %s ON %s.%s = %s.%s " +
+        /*String routeSelectQuery = String.format("SELECT %s.%s FROM %s INNER JOIN %s ON %s.%s = %s.%s " +
                         "WHERE %s.%s = ? ORDER BY %s.%s DESC",
                 RouteEntry.TABLE_NAME, RouteEntry._ID, RouteEntry.TABLE_NAME, UserEntry.TABLE_NAME,
                 RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY, UserEntry.TABLE_NAME, UserEntry._ID,
                 UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME, RouteEntry.TABLE_NAME, RouteEntry._ID);
-
+        */
+        String routeSelectQuery = String.format("SELECT %s.%s FROM %s " +
+                        "WHERE %s.%s = ? ORDER BY %s.%s DESC",
+                RouteEntry.TABLE_NAME, RouteEntry._ID, RouteEntry.TABLE_NAME,
+                RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USERNAME, RouteEntry.TABLE_NAME, RouteEntry._ID);
         Cursor cursor = db.rawQuery(routeSelectQuery, new String[]{user.getUsername()});
         try {
             if (cursor.moveToFirst()) {
@@ -305,14 +315,19 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
         }
         SQLiteDatabase db = getWritableDatabase();
 
-        String routeSelectQuery = String.format(
+        /*String routeSelectQuery = String.format(
                 "SELECT %s.*, %s.%s AS %s FROM %s " +
                 "INNER JOIN %s ON %s.%s = %s.%s " +
                 "WHERE %s.%s = ?",
                 RouteEntry.TABLE_NAME, UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME, UserEntry.COLUMN_USERNAME_ALIAS, RouteEntry.TABLE_NAME,
                 UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY, UserEntry.TABLE_NAME, UserEntry._ID,
                 RouteEntry.TABLE_NAME, RouteEntry._ID);
-
+        */
+        String routeSelectQuery = String.format(
+                "SELECT %s.* FROM %s " +
+                        "WHERE %s.%s = ?",
+                RouteEntry.TABLE_NAME, RouteEntry.TABLE_NAME,
+                RouteEntry.TABLE_NAME, RouteEntry._ID);
         Cursor cursor = db.rawQuery(routeSelectQuery, new String[]{String.valueOf(routeId)});
         try {
             if (cursor.moveToFirst()) {
@@ -339,20 +354,24 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
      * ORDER BY routes._id DESC
      */
     public ArrayList<Route> getAllRoutes(HashMap options) {
-        String routeSelectQuery = String.format(
+        /*String routeSelectQuery = String.format(
                 "SELECT %s.*, %s.%s AS %s FROM %s " +
                 "INNER JOIN %s ON %s.%s = %s.%s ",
                 RouteEntry.TABLE_NAME, UserEntry.TABLE_NAME, UserEntry.COLUMN_USERNAME,
                 UserEntry.COLUMN_USERNAME_ALIAS, RouteEntry.TABLE_NAME,
                 UserEntry.TABLE_NAME, RouteEntry.TABLE_NAME, RouteEntry.COLUMN_USER_KEY,
                 UserEntry.TABLE_NAME, UserEntry._ID);
+        */
+        String routeSelectQuery = String.format(
+                "SELECT %s.* FROM %s ",
+                RouteEntry.TABLE_NAME, RouteEntry.TABLE_NAME);
 
         String[] queryParams = null;
-        if(options.get(UserEntry.COLUMN_USERNAME_ALIAS)!=null){
+        /*if(options.get(UserEntry.COLUMN_USERNAME_ALIAS)!=null){
             String whereClause = String.format("WHERE %s = ? ", UserEntry.COLUMN_USERNAME_ALIAS);
             routeSelectQuery+=whereClause;
             queryParams = new String[]{String.valueOf(options.get(UserEntry.COLUMN_USERNAME_ALIAS))};
-        }
+        }*/
 
         String orderClause = String.format("ORDER BY %s.%s DESC ", RouteEntry.TABLE_NAME, RouteEntry._ID);
         routeSelectQuery+=orderClause;

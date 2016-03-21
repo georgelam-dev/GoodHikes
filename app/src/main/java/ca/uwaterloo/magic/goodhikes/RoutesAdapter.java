@@ -20,11 +20,12 @@ public class RoutesAdapter extends ArrayAdapter<Route> {
 
     // Cache of the children views for a route list item
     public static class ViewHolder {
-        public final TextView descriptionView, durationView, dateOnView,
+        public final TextView usernameView, descriptionView, durationView, dateOnView,
                 dateFromView, dateToView, pointsCountView;
         public final ImageView iconDeleteItemView;
 
         public ViewHolder(View view) {
+            usernameView = (TextView) view.findViewById(R.id.list_item_user_name);
             descriptionView = (TextView) view.findViewById(R.id.list_item_descr_textview);
             dateOnView = (TextView) view.findViewById(R.id.list_item_date_on);
             dateFromView = (TextView) view.findViewById(R.id.list_item_date_from);
@@ -51,6 +52,7 @@ public class RoutesAdapter extends ArrayAdapter<Route> {
         }
         viewHolder = (ViewHolder) convertView.getTag();
 
+        viewHolder.usernameView.setText(route.getUser().getUsername());
         viewHolder.descriptionView.setText(route.getDescription());
         viewHolder.dateOnView.setText(route.getDateStartString());
         viewHolder.durationView.setText(route.getDurationString());

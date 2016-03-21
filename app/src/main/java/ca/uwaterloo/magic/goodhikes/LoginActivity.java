@@ -1,6 +1,5 @@
 package ca.uwaterloo.magic.goodhikes;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -26,6 +25,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 
+import ca.uwaterloo.magic.goodhikes.data.User;
+import ca.uwaterloo.magic.goodhikes.data.UserManager;
+
 public class LoginActivity extends AppCompatActivity {
 
     EditText user_email;
@@ -33,6 +35,9 @@ public class LoginActivity extends AppCompatActivity {
     Button btn_login;
     TextView link_register;
     TextView link_map;
+    private UserManager session;
+    private GoodHikesApplication application;
+    protected static final String LOG_TAG = "LoginActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,13 +47,21 @@ public class LoginActivity extends AppCompatActivity {
             finish();
         }
 
-        /** define variables **/
+        /** Define variables **/
+        session = new UserManager(getApplicationContext());
         user_email = (EditText)findViewById(R.id.user_email);
         user_password = (EditText)findViewById(R.id.user_password);
         btn_login = (Button) findViewById(R.id.btn_login);
         link_register = (TextView) findViewById(R.id.link_register);
         link_map = (TextView) findViewById(R.id.link_map);
 
+        /** Check if user is logged in already **/
+        if (session.checkLogin()) {
+            startActivity(new Intent(getApplicationContext(), MapsActivity.class));
+            finish();
+        }
+
+        /** Login button **/
         btn_login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -72,7 +85,9 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        /** Register button **/
         link_register.setText(Html.fromHtml("New to Goodhikes? <u>Create account</u>"));
+
         link_register.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -81,6 +96,7 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        /** Procede to map **/
         link_map.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -113,22 +129,33 @@ public class LoginActivity extends AppCompatActivity {
                 os.close();
 
                 conn.connect();
+
                 // Receive response as inputStream
                 InputStream is = conn.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 
                 // Convert inputstream to JSON
                 String response = reader.readLine();
-                Log.d("JSON Response", response);
+                Log.d(LOG_TAG, response);
                 JSONObject json = new JSONObject(response);
                 String error = json.getString("error");
 
-
+                // Verify success
                 if (error == "false") {
-                     r = true;
+                    r = true;
+                    Log.d(LOG_TAG, "Correct password");
+                    // set user in sharedpreference
+                    JSONObject json_user = json.getJSONObject("user");
+                    String ID = json.getString("uid");
+                    String name = json_user.getString("name");
+                    String email = json_user.getString("email");
+                    User user = new User(ID, name, email);
+                    session.setUser(user);
+
+
                 } else { r = false; }
             } catch (Exception e) {
-                Log.d("InputStream", e.getLocalizedMessage());
+                Log.d(LOG_TAG, e.getLocalizedMessage());
             }
             return r;
         }

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:fitsSystemWindows="true"
+    android:background="#1EAAF1">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="56dp"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp"
+        android:weightSum="1"
+        android:focusableInTouchMode="true"
+        android:focusable="true">
+
+        <ImageView android:src="@drawable/profile"
+            android:id="@+id/profile_image"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginBottom="30dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_weight="0.20"
+            android:layout_marginTop="20dp" />
+
+        <!-- goto register -->
+        <TextView android:id="@+id/profile_user_name"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Name: AAA"
+            android:textSize="25dip"
+            android:textColor="#ffffff"
+            android:gravity="left"
+            android:layout_marginLeft="20dp" />
+
+        <!-- continue without login -->
+        <TextView android:id="@+id/profile_email"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Email: "
+            android:textSize="25dip"
+            android:textColor="#ffffff"
+            android:layout_marginLeft="20dp"
+            android:gravity="left" />
+
+    </LinearLayout>
+</ScrollView>

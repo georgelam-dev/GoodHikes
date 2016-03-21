@@ -22,6 +22,7 @@ import com.google.android.gms.location.LocationServices;
 
 import ca.uwaterloo.magic.goodhikes.data.Route;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
+import ca.uwaterloo.magic.goodhikes.data.UserManager;
 
 public class GPSLoggingService extends Service
         implements
@@ -37,7 +38,7 @@ public class GPSLoggingService extends Service
     private LooperThread internalLooperThread;
     private boolean mTrackingIsActive=false, trackingIsPaused;
     public Route currentRoute;
-    private GoodHikesApplication application;
+    private UserManager userManager;
     private RoutesDatabaseManager database;
 
     private static class GPSTrackingCommands {
@@ -64,7 +65,7 @@ public class GPSLoggingService extends Service
     }
 
     public void saveRoute() {
-        database.insertRoute(currentRoute);
+        database.insertRoute(currentRoute, userManager.getUser());
     }
 
     private void sendCommandToLooperThread(Intent command){
@@ -72,7 +73,7 @@ public class GPSLoggingService extends Service
             Message msg = internalLooperThread.mLooperThreadHandler.obtainMessage();
             msg.obj = command;
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() +
-                    "; Sending "+command.getAction()+" command to looper thread");
+                    "; Sending " + command.getAction() + " command to looper thread");
             internalLooperThread.mLooperThreadHandler.sendMessage(msg);
         }
     }
@@ -100,7 +101,7 @@ public class GPSLoggingService extends Service
     public void onCreate() {
 //        android.os.Debug.waitForDebugger();
         super.onCreate();
-        application = (GoodHikesApplication) getApplicationContext();
+        userManager = new UserManager(getApplicationContext());
         database = RoutesDatabaseManager.getInstance(this);
         createGoogleAPIClient();
         createLocationRequest();
@@ -163,7 +164,7 @@ public class GPSLoggingService extends Service
             if(trackingIsPaused){
                 trackingIsPaused=false;
             }else{
-                currentRoute = new Route(application.currentUser);
+                currentRoute = new Route(userManager.getUser());
             }
             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Starting location tracking in looper thread");
         }

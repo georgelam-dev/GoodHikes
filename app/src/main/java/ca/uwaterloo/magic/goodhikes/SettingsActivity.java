@@ -9,10 +9,14 @@ import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
+import android.preference.PreferenceScreen;
+import android.util.Log;
 
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
+
+import ca.uwaterloo.magic.goodhikes.data.UserManager;
 
 /**
  * Created by GeorgeLam on 2/19/2016.
@@ -28,23 +32,50 @@ public class SettingsActivity extends PreferenceActivity
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
+    private UserManager userManager;
+    protected static final String LOG_TAG = "SettingsActivity";
+    private PreferenceScreen screen;
+    private Preference login_pref;
+    private Preference profile_pref;
+    private Preference logout_pref;
+
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         setup_interval = false;
         setup_logout = false;
+
         super.onCreate(savedInstanceState);
         // Add 'general' preferences, defined in the XML file
         addPreferencesFromResource(R.xml.pref_general);
+        screen = getPreferenceScreen();
+        login_pref = getPreferenceScreen().findPreference("Login");
+        profile_pref = getPreferenceScreen().findPreference("User Profile");
+        logout_pref = getPreferenceScreen().findPreference("Logout");
+
+        userManager = new UserManager(getApplicationContext());
+        if (userManager.checkLogin()) {
+            screen.removePreference(login_pref);
+            screen.addPreference(profile_pref);
+            screen.addPreference(logout_pref);
+            bindPreferenceSummaryToValue(findPreference(getString(R.string.logout)));
+            bindPreferenceSummaryToValue(findPreference(getString(R.string.profile)));
+        } else {
+            screen.addPreference(login_pref);
+            bindPreferenceSummaryToValue(findPreference(getString(R.string.login)));
+            screen.removePreference(profile_pref);
+            screen.removePreference(logout_pref);
+        }
 
         // For all preferences, attach an OnPreferenceChangeListener so the UI summary can be
         // updated when the preference changes.
         bindPreferenceSummaryToValue(findPreference(getString(R.string.interval_pref)));
-        bindPreferenceSummaryToValue(findPreference(getString(R.string.logout)));
         bindPreferenceSummaryToValue(findPreference(getString(R.string.map_pref)));
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+        userManager = new UserManager(getApplicationContext());
     }
 
     /**
@@ -104,11 +135,13 @@ public class SettingsActivity extends PreferenceActivity
             logout_prompt.setPositiveButton("Logout", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int id) {
+                    userManager.clearUser();
+                    Log.d(LOG_TAG, "logout");
                     Intent restart = new Intent(getApplicationContext(), LoginActivity.class);
                     restart.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    finish();
                     sendBroadcast(new Intent("logout"));
                     startActivity(restart);
+                    finish();
                 }
             });
             logout_prompt.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -117,6 +150,13 @@ public class SettingsActivity extends PreferenceActivity
             });
             AlertDialog logout_message = logout_prompt.create();
             logout_message.show();
+        }
+        else if(preference.getKey().equals("Login")) {
+            startActivity(new Intent(getApplicationContext(), LoginActivity.class));
+        }
+        else if (preference.getKey().equals("User Profile")) {
+            startActivity(new Intent(getApplicationContext(), ProfileActivity.class));
+
         }
 
         return true;

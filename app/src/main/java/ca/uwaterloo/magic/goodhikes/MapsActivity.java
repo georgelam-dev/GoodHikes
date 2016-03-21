@@ -55,6 +55,7 @@ import ca.uwaterloo.magic.goodhikes.data.Milestone;
 import ca.uwaterloo.magic.goodhikes.data.Route;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
 import ca.uwaterloo.magic.goodhikes.data.RoutesDatabaseManager;
+import ca.uwaterloo.magic.goodhikes.data.UserManager;
 
 public class MapsActivity extends AppCompatActivity
         implements
@@ -64,7 +65,7 @@ public class MapsActivity extends AppCompatActivity
 
     protected GoogleMap mMap;
     private RoutesDatabaseManager database;
-    private GoodHikesApplication application;
+    private UserManager userManager;
     protected static final String LOG_TAG = "MapsActivity";
     private GPSUpdatesReceiver mGPSUpdatesReceiver;
     private IntentFilter mFilter;
@@ -86,7 +87,7 @@ public class MapsActivity extends AppCompatActivity
         @Override
         public void onReceive(Context context, Intent intent) {
             mLoggingService.stopLocationTracking();
-            unregisterReceiver(logoutReceiver);
+
             finish();
         }
     };
@@ -105,7 +106,7 @@ public class MapsActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         database = RoutesDatabaseManager.getInstance(this);
-        application = (GoodHikesApplication) getApplicationContext();
+        userManager = new UserManager(getApplicationContext());
         milestonePointMarkers = new ArrayList<Marker>();
         markerImageMap = new HashMap<String, Bitmap>();
 
@@ -144,7 +145,7 @@ public class MapsActivity extends AppCompatActivity
         mGPSUpdatesReceiver = new GPSUpdatesReceiver();
         mConnection = new GPSLoggingServiceConnection();
         if(selectedRoute==null)
-            selectedRoute = database.getLatestRoute(application.currentUser);
+            selectedRoute = database.getLatestRoute(userManager.getUser());
 //        clearMap();
         LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
         registerReceiver(logoutReceiver, new IntentFilter("logout"));
@@ -163,6 +164,7 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onStop() {
         super.onStop();
+        unregisterReceiver(logoutReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mGPSUpdatesReceiver);
     }
 

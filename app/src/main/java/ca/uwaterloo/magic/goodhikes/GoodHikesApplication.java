@@ -3,12 +3,18 @@ package ca.uwaterloo.magic.goodhikes;
 import android.app.Application;
 
 import ca.uwaterloo.magic.goodhikes.data.User;
+import ca.uwaterloo.magic.goodhikes.data.UserManager;
 
 public class GoodHikesApplication extends Application {
     public User currentUser;
-    @Override
+    private UserManager userManager;
+
     public void onCreate() {
         super.onCreate();
-        currentUser = new User("stub");
+        userManager = new UserManager(getApplicationContext());
+        currentUser = userManager.getUser();
+    }
+    public void setUser(User user) {
+        this.currentUser = user;
     }
 }

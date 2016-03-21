@@ -1,41 +1,38 @@
 package ca.uwaterloo.magic.goodhikes.data;
 
-import android.content.ContentValues;
-import android.database.Cursor;
-
-import ca.uwaterloo.magic.goodhikes.data.RoutesContract.UserEntry;
-
 public class User {
-    private String username;
-    private long id;
+    private String name;
+    private String email;
+    private String ID;
 
     public User() {}
 
-    public User(String username) {
-        this.username = username;
+    public User(String ID, String name, String email) {
+        this.name = name;
+        this.email = email;
+        this.ID = ID;
     }
 
-    public long getId() {return id;}
-    public void setId(long id) {this.id = id;}
-
+    public String getId() {return ID;}
+    public void setId(String id) {this.ID = id;}
     public String getUsername(){
-        return username;
+        return name;
     }
-
-    public void setUsername(String username){
-        this.username = username;
+    public void setUsername(String name){
+        this.name = name;
     }
+    public String getEmail() { return email; }
 
-    public ContentValues toContentValues(){
+    /*public ContentValues toContentValues(){
         ContentValues values = new ContentValues();
-        values.put(UserEntry.COLUMN_USERNAME, username);
+        values.put(UserEntry.COLUMN_USERNAME, name);
         return values;
-    }
+    }*/
 
-    public static User fromDBCursor(Cursor cursor){
+    /*public static User fromDBCursor(Cursor cursor){
         User user = new User();
-        user.setId(cursor.getLong(cursor.getColumnIndex(UserEntry._ID)));
+        user.setId(cursor.getString(cursor.getColumnIndex(UserEntry._ID)));
         user.setUsername(cursor.getString(cursor.getColumnIndex(UserEntry.COLUMN_USERNAME)));
         return user;
-    }
+    }*/
 }
