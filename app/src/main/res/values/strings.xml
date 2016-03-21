@@ -60,5 +60,8 @@
     <string name="add">Add</string>
     <string name="cancel">Cancel</string>
     <string name="title_activity_profile">ProfileActivity</string>
+    <string name="start_tracking">Start tracking</string>
+    <string name="new_route">New route</string>
+    <string name="follow_the_white_rabbit">Follow the route</string>
 
 </resources>

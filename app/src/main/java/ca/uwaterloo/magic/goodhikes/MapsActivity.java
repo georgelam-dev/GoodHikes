@@ -73,8 +73,10 @@ public class MapsActivity extends AppCompatActivity
     private GPSLoggingService mLoggingService;
     private ImageButton mGPSTrackingButton, mMilestoneButton, mSettingsButton, mHistoryButton;
     private Route selectedRoute;
-    private Polyline visualRouteTrace;
-    private Marker initRoutePointMarker, lastRoutePointMarker;
+    private Polyline visualRouteTrace, previousVisualRouteTrace;
+    private Marker initRoutePointMarker, lastRoutePointMarker,
+            previousRoutePointMarkerStart, previousRoutePointMarkerEnd;
+    private boolean followingExistingRoute;
     private ArrayList<Marker> milestonePointMarkers;
     private ImageView previewImage;
     private Map<String, Bitmap> markerImageMap;
@@ -125,6 +127,7 @@ public class MapsActivity extends AppCompatActivity
         if(savedInstanceState!=null){
             long routeId = savedInstanceState.getLong(RouteEntry._ID);
             selectedRoute = database.getRoute(routeId);
+            followingExistingRoute = savedInstanceState.getBoolean("followingExistingRoute");
         }
     }
 
@@ -196,6 +199,8 @@ public class MapsActivity extends AppCompatActivity
     public void onSaveInstanceState(Bundle outState) {
         if(selectedRoute!=null)
             outState.putLong(RouteEntry._ID, selectedRoute.getId());
+        if(followingExistingRoute!=false)
+            outState.putBoolean("followingExistingRoute", followingExistingRoute);
         super.onSaveInstanceState(outState);
     }
 
@@ -231,6 +236,7 @@ public class MapsActivity extends AppCompatActivity
         settings.setScrollGesturesEnabled(true);
         updateMapType();
         enableMyLocation();
+        if(followingExistingRoute) drawPreviousRouteTrace();
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; onMapReady()");
     }
 
@@ -330,10 +336,11 @@ public class MapsActivity extends AppCompatActivity
             public void onClick(View v) {
                 if (mLoggingService != null) {
                     if (!mLoggingService.isTrackingActive()) {
-                        if (mLoggingService.isTrackingOnPause() == false) clearMap();
-                        mLoggingService.startLocationTracking();
-                        setTrackingButtonIcon();
-
+                        if(mLoggingService.isTrackingOnPause()){
+                            startTracking();
+                        } else {
+                            showStartTrackingDialog();
+                        }
                     } else {
                         mLoggingService.stopLocationTracking();
                         setTrackingButtonIcon();
@@ -363,6 +370,12 @@ public class MapsActivity extends AppCompatActivity
                         PICK_ROUTE_REQUEST);
             }
         });
+    }
+
+    private void startTracking(){
+        if(mLoggingService.isTrackingOnPause()==false) clearMap();
+        mLoggingService.startLocationTracking();
+        setTrackingButtonIcon();
     }
 
     @Override
@@ -398,16 +411,19 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    private void initVisualTrace(){
+    private void initVisualTrace(boolean previousRoute){
         PolylineOptions traceOptions = new PolylineOptions();
-        traceOptions.color(Color.BLUE);
-        visualRouteTrace = mMap.addPolyline(traceOptions);
-        visualRouteTrace.setVisible(true);
+        int color = (!previousRoute) ? Color.BLUE : Color.rgb(255, 255, 153); //light green
+        traceOptions.color(color);
+        Polyline routeTrace = mMap.addPolyline(traceOptions);
+        if(!previousRoute) visualRouteTrace=routeTrace;
+        else previousVisualRouteTrace=routeTrace;
+        routeTrace.setVisible(true);
     }
 
     private void drawTrace(Route route){
         if(route==null || route.getId()==-1) return;
-        if(visualRouteTrace==null) initVisualTrace();
+        if(visualRouteTrace==null) initVisualTrace(false);
         visualRouteTrace.setPoints(route.getPointsCoordinates());
 
         if(route.size()>0 && initRoutePointMarker==null){
@@ -436,6 +452,44 @@ public class MapsActivity extends AppCompatActivity
                     .snippet(milestone.getNote()));
             markerImageMap.put(marker.getId(), milestone.getImage());
             milestonePointMarkers.add(marker);
+        }
+    }
+
+    private void drawPreviousRouteTrace(){
+        if(selectedRoute==null || selectedRoute.getId()==-1) return;
+        followingExistingRoute=true;
+        if(previousVisualRouteTrace == null){
+            initVisualTrace(true);
+            previousVisualRouteTrace.setPoints(selectedRoute.getPointsCoordinates());
+        }
+
+        if(selectedRoute.size()>0){
+            previousRoutePointMarkerStart = mMap.addMarker(new MarkerOptions()
+                    .position(selectedRoute.getStartCoordinates())
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                    .title("Previous route start"));
+        }
+
+        if (selectedRoute.size()>1){
+            previousRoutePointMarkerEnd = mMap.addMarker(new MarkerOptions()
+                .position(selectedRoute.getLastCoordinates())
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
+                .title("Previous route end"));
+        }
+    }
+
+    private void clearRouteFollowed(){
+        if(previousRoutePointMarkerStart!=null){
+            previousRoutePointMarkerStart.remove();
+            previousRoutePointMarkerStart=null;
+        }
+        if(previousRoutePointMarkerEnd!=null){
+            previousRoutePointMarkerEnd.remove();
+            previousRoutePointMarkerEnd=null;
+        }
+        if(previousVisualRouteTrace!=null){
+            previousVisualRouteTrace.remove();
+            previousVisualRouteTrace=null;
         }
     }
 
@@ -495,6 +549,12 @@ public class MapsActivity extends AppCompatActivity
         dialog.show(fm, "addMilestoneDialog");
     }
 
+    private void showStartTrackingDialog() {
+        FragmentManager fm = getSupportFragmentManager();
+        StartTrackingDialogFragment dialog = new StartTrackingDialogFragment();
+        dialog.show(fm, "startTrackingDialog");
+    }
+
     public class SaveRouteDialogFragment extends DialogFragment {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -511,6 +571,12 @@ public class MapsActivity extends AppCompatActivity
                             CheckBox privateCheckbox = (CheckBox) ((Dialog) dialog).findViewById(R.id.checkbox_private);
                             mLoggingService.currentRoute.setPrivate(privateCheckbox.isChecked());
                             mLoggingService.saveRoute();
+
+                            if(followingExistingRoute){
+                                followingExistingRoute=false;
+                                clearRouteFollowed();
+                            }
+
                             Toast.makeText(getActivity(), "Route saved", Toast.LENGTH_SHORT).show();
                             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; route saved");
                         }
@@ -543,6 +609,27 @@ public class MapsActivity extends AppCompatActivity
                             mLoggingService.setTrackingOnPause(true);
                             Toast.makeText(getActivity(), "Route tracking is paused", Toast.LENGTH_SHORT).show();
                             Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Tracking is paused");
+                        }
+                    });
+            return builder.create();
+        }
+    }
+
+    public class StartTrackingDialogFragment extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            LayoutInflater inflater = getActivity().getLayoutInflater();
+            builder.setTitle(R.string.start_tracking)
+                    .setPositiveButton(R.string.follow_the_white_rabbit, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            drawPreviousRouteTrace();
+                            startTracking();
+                        }
+                    })
+                    .setNegativeButton(R.string.new_route, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            startTracking();
                         }
                     });
             return builder.create();
