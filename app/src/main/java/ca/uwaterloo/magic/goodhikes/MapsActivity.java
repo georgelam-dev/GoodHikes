@@ -17,6 +17,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.LocalBroadcastManager;
@@ -84,6 +85,7 @@ public class MapsActivity extends AppCompatActivity
     //Identifiers for opening other activities and returning results to MapsActivity
     private final int PICK_ROUTE_REQUEST = 1;
     private final int RESULT_LOAD_IMG = 2;
+    private final int RESULT_CAPTURE_IMG = 3;
 
     private final BroadcastReceiver logoutReceiver = new BroadcastReceiver() {
         @Override
@@ -395,6 +397,12 @@ public class MapsActivity extends AppCompatActivity
                 previewImage.setImageURI(selectedImage);
             }
         }
+        if(requestCode==RESULT_CAPTURE_IMG){
+            if (resultCode == RESULT_OK) {
+                Bitmap imageBitmap = (Bitmap) data.getExtras().get("data");
+                previewImage.setImageBitmap(imageBitmap);
+            }
+        }
     }
 
     private void drawSelectedRoute(){
@@ -665,9 +673,18 @@ public class MapsActivity extends AppCompatActivity
                 @Override
                 public void onClick(View v) {
                     // Create intent to Open Image applications like Gallery, Google Photos
-                    Intent galleryIntent = new Intent(Intent.ACTION_PICK,
-                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                     getActivity().startActivityForResult(galleryIntent, RESULT_LOAD_IMG);
+                }
+            });
+
+            Button cameraButton = (Button) dialog.findViewById(R.id.cameraButton);
+            cameraButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Create intent to open device's Camera
+                    Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    getActivity().startActivityForResult(cameraIntent, RESULT_CAPTURE_IMG);
                 }
             });
 

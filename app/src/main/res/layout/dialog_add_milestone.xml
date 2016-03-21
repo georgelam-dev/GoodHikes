@@ -18,12 +18,27 @@
         android:singleLine="false"
         android:nestedScrollingEnabled="false" />
 
-    <Button
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Add Image"
-        android:id="@+id/addImageButton"
-        android:layout_gravity="center_horizontal" />
+        android:gravity="center_horizontal"
+        android:weightSum="1">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add Image"
+            android:id="@+id/addImageButton"
+            android:layout_weight=".5" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Camera"
+            android:id="@+id/cameraButton"
+            android:layout_weight=".5" />
+    </LinearLayout>
 
     <ImageView
         android:layout_width="fill_parent"
