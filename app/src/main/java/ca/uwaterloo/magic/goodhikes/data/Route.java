@@ -138,6 +138,10 @@ public class Route {
         return getFormattedDate(dateStart);
     }
 
+    public String getDateEndString(){
+        return getFormattedDate(dateEnd);
+    }
+
     public String getTimeStart(){
         return getFormattedTime(dateStart);
     }
@@ -162,6 +166,8 @@ public class Route {
         long duration = (dateEnd-dateStart)/1000;
         return String.format("%02d:%02d:%02d", duration/3600, (duration%3600)/60, (duration%60));
     }
+
+    public boolean getPrivate() { return privateRoute; }
 
     public static Route fromDBCursor(Cursor cursor, boolean withUser){
         Route route = new Route();

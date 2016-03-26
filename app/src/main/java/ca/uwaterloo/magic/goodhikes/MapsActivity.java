@@ -48,10 +48,14 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import ca.uwaterloo.magic.goodhikes.data.LocationPoint;
 import ca.uwaterloo.magic.goodhikes.data.Milestone;
 import ca.uwaterloo.magic.goodhikes.data.Route;
 import ca.uwaterloo.magic.goodhikes.data.RoutesContract.RouteEntry;
@@ -72,7 +76,7 @@ public class MapsActivity extends AppCompatActivity
     private IntentFilter mFilter;
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
-    private ImageButton mGPSTrackingButton, mMilestoneButton, mSettingsButton, mHistoryButton;
+    private ImageButton mGPSTrackingButton, mMilestoneButton, mSettingsButton, mHistoryButton, mStatisticsButton;
     private Route selectedRoute;
     private Polyline visualRouteTrace, previousVisualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker,
@@ -121,6 +125,7 @@ public class MapsActivity extends AppCompatActivity
 
         //Create and attach listeners to buttons
         mSettingsButton = (ImageButton) findViewById(R.id.settings_button);
+        mStatisticsButton = (ImageButton) findViewById(R.id.statistics_button);
         mHistoryButton = (ImageButton) findViewById(R.id.history_button);
         mGPSTrackingButton = (ImageButton) findViewById(R.id.gps_tracking_control_button);
         mMilestoneButton = (ImageButton) findViewById(R.id.milestone_button);
@@ -363,6 +368,19 @@ public class MapsActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
+            }
+        });
+        mStatisticsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String json = toJSON();
+                if (json==null)
+                    Toast.makeText(getApplicationContext(), "No current route!", Toast.LENGTH_SHORT).show();
+                else {
+                    Intent i = new Intent(getApplicationContext(), StatisticsActivity.class);
+                    i.putExtra("current_route", json);
+                    startActivity(i);
+                }
             }
         });
         mHistoryButton.setOnClickListener(new View.OnClickListener() {
@@ -692,5 +710,44 @@ public class MapsActivity extends AppCompatActivity
 
             return builder.create();
         }
+    }
+
+    public String toJSON(){
+
+        JSONObject jsonObj= new JSONObject();
+        if(selectedRoute==null || selectedRoute.getId()==-1)
+            return null;
+        Route curr = selectedRoute;
+        Log.d("maps:first_coord", String.valueOf(curr.getStartCoordinates()));
+        float max_speed = 0, total_speed = 0;
+        float distance = 0;
+        ArrayList<LocationPoint> trace = curr.getTrace();
+        for (int i = 0; i < curr.size(); i++) {
+            Location location = trace.get(i);
+            if (i > 0){
+                //Log.d(LOG_TAG, i-1 + " to " + i + ": " + location.distanceTo(trace.get(i-1)));
+                distance += location.distanceTo(trace.get(i-1));
+            }
+            if (location.getSpeed() > max_speed)
+                max_speed = location.getSpeed();
+            total_speed += location.getSpeed();
+        }
+        try {
+            jsonObj.put("user_name", curr.getUser().getUsername());
+            jsonObj.put("route_name", curr.getDescription());
+            jsonObj.put("start_time", curr.getDateStartString() + ", " + curr.getTimeStart());
+            jsonObj.put("end_time", curr.getDateEndString() + ", " + curr.getTimeEnd());
+            jsonObj.put("duration", curr.getDurationString());
+            jsonObj.put("distance", distance/1000);
+            jsonObj.put("aver_speed", total_speed/curr.size());
+            jsonObj.put("max_speed", max_speed);
+            jsonObj.put("num_waypoints", curr.size());
+            jsonObj.put("private", curr.getPrivate()==true ? "True" : "False");
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        Log.d(LOG_TAG, "JSON String: " + jsonObj.toString());
+        return jsonObj.toString();
     }
 }
