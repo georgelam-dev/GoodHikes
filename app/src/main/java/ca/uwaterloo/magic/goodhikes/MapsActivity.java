@@ -51,6 +51,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,7 +67,7 @@ public class MapsActivity extends AppCompatActivity
         implements
         OnMapReadyCallback,
         GoogleMap.OnMyLocationButtonClickListener,
-        GoogleMap.OnInfoWindowClickListener{
+        GoogleMap.OnInfoWindowClickListener {
 
     protected GoogleMap mMap;
     private RoutesDatabaseManager database;
@@ -76,7 +77,7 @@ public class MapsActivity extends AppCompatActivity
     private IntentFilter mFilter;
     private ServiceConnection mConnection;
     private GPSLoggingService mLoggingService;
-    private ImageButton mGPSTrackingButton, mMilestoneButton, mSettingsButton, mHistoryButton, mStatisticsButton;
+    private ImageButton mGPSTrackingButton, mMilestoneButton, mSettingsButton, mHistoryButton, mStatisticsButton, mShareButton;
     private Route selectedRoute;
     private Polyline visualRouteTrace, previousVisualRouteTrace;
     private Marker initRoutePointMarker, lastRoutePointMarker,
@@ -103,7 +104,7 @@ public class MapsActivity extends AppCompatActivity
     /**
      * onCreate() is called only once for Activity, whereas onStart() - each time
      * appActivity is hidden from screen (user uses other apps), and then App is activated again.
-     *
+     * <p/>
      * Using startService() overrides the default service lifetime that is managed by
      * bindService(Intent, ServiceConnection, int): it requires the service to remain running
      * until stopService(Intent) is called, regardless of whether any clients are connected to it.
@@ -125,13 +126,14 @@ public class MapsActivity extends AppCompatActivity
 
         //Create and attach listeners to buttons
         mSettingsButton = (ImageButton) findViewById(R.id.settings_button);
+        mShareButton = (ImageButton) findViewById(R.id.share_button);
         mStatisticsButton = (ImageButton) findViewById(R.id.statistics_button);
         mHistoryButton = (ImageButton) findViewById(R.id.history_button);
         mGPSTrackingButton = (ImageButton) findViewById(R.id.gps_tracking_control_button);
         mMilestoneButton = (ImageButton) findViewById(R.id.milestone_button);
         attachUICallbacks();
 
-        if(savedInstanceState!=null){
+        if (savedInstanceState != null) {
             long routeId = savedInstanceState.getLong(RouteEntry._ID);
             selectedRoute = database.getRoute(routeId);
             followingExistingRoute = savedInstanceState.getBoolean("followingExistingRoute");
@@ -154,7 +156,7 @@ public class MapsActivity extends AppCompatActivity
         mFilter = new IntentFilter(GPSLoggingService.locationUpdateCommand);
         mGPSUpdatesReceiver = new GPSUpdatesReceiver();
         mConnection = new GPSLoggingServiceConnection();
-        if(selectedRoute==null)
+        if (selectedRoute == null)
             selectedRoute = database.getLatestRoute(userManager.getUser());
 //        clearMap();
         LocalBroadcastManager.getInstance(this).registerReceiver(mGPSUpdatesReceiver, mFilter);
@@ -162,7 +164,6 @@ public class MapsActivity extends AppCompatActivity
         startService(new Intent(this, GPSLoggingService.class));
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; MapActivity started");
     }
-
 
 
     /**
@@ -189,9 +190,9 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-   /*
-    * Unbinding GPS service in onPause, so that there are always matching pairs of bind/unbind calls.
-    * */
+    /*
+     * Unbinding GPS service in onPause, so that there are always matching pairs of bind/unbind calls.
+     * */
     @Override
     protected void onPause() {
         super.onPause();
@@ -199,14 +200,14 @@ public class MapsActivity extends AppCompatActivity
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Unbinding from GPS service");
     }
 
-   /*
-    * When display is rotated, the currently selected route needs to be saved.
-    * */
+    /*
+     * When display is rotated, the currently selected route needs to be saved.
+     * */
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        if(selectedRoute!=null)
+        if (selectedRoute != null)
             outState.putLong(RouteEntry._ID, selectedRoute.getId());
-        if(followingExistingRoute!=false)
+        if (followingExistingRoute != false)
             outState.putBoolean("followingExistingRoute", followingExistingRoute);
         super.onSaveInstanceState(outState);
     }
@@ -243,12 +244,12 @@ public class MapsActivity extends AppCompatActivity
         settings.setScrollGesturesEnabled(true);
         updateMapType();
         enableMyLocation();
-        if(followingExistingRoute) drawPreviousRouteTrace();
+        if (followingExistingRoute) drawPreviousRouteTrace();
         Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; onMapReady()");
     }
 
     @Override
-    public void onInfoWindowClick (Marker marker) {
+    public void onInfoWindowClick(Marker marker) {
         //Toast.makeText(this, "Info Window Clicked", Toast.LENGTH_SHORT).show();
     }
 
@@ -301,7 +302,7 @@ public class MapsActivity extends AppCompatActivity
         super.onResumeFragments();
     }
 
-    private void updateLocation(Location location){
+    private void updateLocation(Location location) {
         mLoggingService.updateGPSfrequency();
         LatLng coordinates = new LatLng(location.getLatitude(), location.getLongitude());
         mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinates));
@@ -313,12 +314,12 @@ public class MapsActivity extends AppCompatActivity
         public void onReceive(Context context, Intent intent) {
             Location location;
             Bundle extras = intent.getExtras();
-            if(extras != null) {
+            if (extras != null) {
                 location = (Location) intent.getExtras().get(GPSLoggingService.locationUpdateCommand);
                 updateLocation(location);
             }
             drawTrace(mLoggingService.currentRoute);
-            Log.d(LOG_TAG, "Thread: "+Thread.currentThread().getId() + "; Location update received by UI");
+            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; Location update received by UI");
         }
 
     }
@@ -334,16 +335,18 @@ public class MapsActivity extends AppCompatActivity
             if (!mLoggingService.isTrackingActive() && !mLoggingService.isTrackingOnPause())
                 drawSelectedRoute();
         }
-        public void onServiceDisconnected(ComponentName className) {}
+
+        public void onServiceDisconnected(ComponentName className) {
+        }
     }
 
-    private void attachUICallbacks(){
+    private void attachUICallbacks() {
         mGPSTrackingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mLoggingService != null) {
                     if (!mLoggingService.isTrackingActive()) {
-                        if(mLoggingService.isTrackingOnPause()){
+                        if (mLoggingService.isTrackingOnPause()) {
                             startTracking();
                         } else {
                             showStartTrackingDialog();
@@ -370,11 +373,17 @@ public class MapsActivity extends AppCompatActivity
                 startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
             }
         });
+        mShareButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                CaptureMapScreen();
+            }
+        });
         mStatisticsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String json = toJSON();
-                if (json==null)
+                if (json == null)
                     Toast.makeText(getApplicationContext(), "No current route!", Toast.LENGTH_SHORT).show();
                 else {
                     Intent i = new Intent(getApplicationContext(), StatisticsActivity.class);
@@ -392,16 +401,16 @@ public class MapsActivity extends AppCompatActivity
         });
     }
 
-    private void startTracking(){
-        if(mLoggingService.isTrackingOnPause()==false) clearMap();
+    private void startTracking() {
+        if (mLoggingService.isTrackingOnPause() == false) clearMap();
         mLoggingService.startLocationTracking();
         setTrackingButtonIcon();
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data){
-        if(requestCode==RESULT_CANCELED) return;
-        if(requestCode==PICK_ROUTE_REQUEST){
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == RESULT_CANCELED) return;
+        if (requestCode == PICK_ROUTE_REQUEST) {
             if (resultCode == RESULT_OK) {
                 long routeId = data.getLongExtra(RouteEntry._ID, -1);
                 selectedRoute = database.getRoute(routeId);
@@ -409,13 +418,13 @@ public class MapsActivity extends AppCompatActivity
                     drawSelectedRoute();
             }
         }
-        if(requestCode==RESULT_LOAD_IMG){
+        if (requestCode == RESULT_LOAD_IMG) {
             if (resultCode == RESULT_OK) {
                 Uri selectedImage = data.getData();
                 previewImage.setImageURI(selectedImage);
             }
         }
-        if(requestCode==RESULT_CAPTURE_IMG){
+        if (requestCode == RESULT_CAPTURE_IMG) {
             if (resultCode == RESULT_OK) {
                 Bitmap imageBitmap = (Bitmap) data.getExtras().get("data");
                 previewImage.setImageBitmap(imageBitmap);
@@ -423,43 +432,43 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    private void drawSelectedRoute(){
-        if(selectedRoute==null || selectedRoute.getId()==-1) return;
+    private void drawSelectedRoute() {
+        if (selectedRoute == null || selectedRoute.getId() == -1) return;
         clearMap();
         drawTrace(selectedRoute);
         moveMapCameraToRoute(selectedRoute);
     }
 
-    private void setTrackingButtonIcon(){
-        if(mLoggingService!=null) {
+    private void setTrackingButtonIcon() {
+        if (mLoggingService != null) {
             mGPSTrackingButton.setImageResource(mLoggingService.getTrackingButtonIcon());
             mMilestoneButton.setImageResource(mLoggingService.getMilestoneButtonIcon());
         }
     }
 
-    private void initVisualTrace(boolean previousRoute){
+    private void initVisualTrace(boolean previousRoute) {
         PolylineOptions traceOptions = new PolylineOptions();
         int color = (!previousRoute) ? Color.BLUE : Color.rgb(255, 255, 153); //light green
         traceOptions.color(color);
         Polyline routeTrace = mMap.addPolyline(traceOptions);
-        if(!previousRoute) visualRouteTrace=routeTrace;
-        else previousVisualRouteTrace=routeTrace;
+        if (!previousRoute) visualRouteTrace = routeTrace;
+        else previousVisualRouteTrace = routeTrace;
         routeTrace.setVisible(true);
     }
 
-    private void drawTrace(Route route){
-        if(route==null || route.getId()==-1) return;
-        if(visualRouteTrace==null) initVisualTrace(false);
+    private void drawTrace(Route route) {
+        if (route == null || route.getId() == -1) return;
+        if (visualRouteTrace == null) initVisualTrace(false);
         visualRouteTrace.setPoints(route.getPointsCoordinates());
 
-        if(route.size()>0 && initRoutePointMarker==null){
+        if (route.size() > 0 && initRoutePointMarker == null) {
             initRoutePointMarker = mMap.addMarker(
                     new MarkerOptions().position(route.getStartCoordinates()).title("Start"));
         }
 
-        if (route.size()>1){
-            if(lastRoutePointMarker!=null) lastRoutePointMarker.remove();
-            lastRoutePointMarker =  mMap.addMarker(new MarkerOptions()
+        if (route.size() > 1) {
+            if (lastRoutePointMarker != null) lastRoutePointMarker.remove();
+            lastRoutePointMarker = mMap.addMarker(new MarkerOptions()
                     .position(route.getLastCoordinates())
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                     .title("End"));
@@ -481,56 +490,56 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    private void drawPreviousRouteTrace(){
-        if(selectedRoute==null || selectedRoute.getId()==-1) return;
-        followingExistingRoute=true;
-        if(previousVisualRouteTrace == null){
+    private void drawPreviousRouteTrace() {
+        if (selectedRoute == null || selectedRoute.getId() == -1) return;
+        followingExistingRoute = true;
+        if (previousVisualRouteTrace == null) {
             initVisualTrace(true);
             previousVisualRouteTrace.setPoints(selectedRoute.getPointsCoordinates());
         }
 
-        if(selectedRoute.size()>0){
+        if (selectedRoute.size() > 0) {
             previousRoutePointMarkerStart = mMap.addMarker(new MarkerOptions()
                     .position(selectedRoute.getStartCoordinates())
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
                     .title("Previous route start"));
         }
 
-        if (selectedRoute.size()>1){
+        if (selectedRoute.size() > 1) {
             previousRoutePointMarkerEnd = mMap.addMarker(new MarkerOptions()
-                .position(selectedRoute.getLastCoordinates())
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
-                .title("Previous route end"));
+                    .position(selectedRoute.getLastCoordinates())
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
+                    .title("Previous route end"));
         }
     }
 
-    private void clearRouteFollowed(){
-        if(previousRoutePointMarkerStart!=null){
+    private void clearRouteFollowed() {
+        if (previousRoutePointMarkerStart != null) {
             previousRoutePointMarkerStart.remove();
-            previousRoutePointMarkerStart=null;
+            previousRoutePointMarkerStart = null;
         }
-        if(previousRoutePointMarkerEnd!=null){
+        if (previousRoutePointMarkerEnd != null) {
             previousRoutePointMarkerEnd.remove();
-            previousRoutePointMarkerEnd=null;
+            previousRoutePointMarkerEnd = null;
         }
-        if(previousVisualRouteTrace!=null){
+        if (previousVisualRouteTrace != null) {
             previousVisualRouteTrace.remove();
-            previousVisualRouteTrace=null;
+            previousVisualRouteTrace = null;
         }
     }
 
-    private void clearMap(){
-        if(initRoutePointMarker!=null){
+    private void clearMap() {
+        if (initRoutePointMarker != null) {
             initRoutePointMarker.remove();
-            initRoutePointMarker=null;
+            initRoutePointMarker = null;
         }
-        if(lastRoutePointMarker!=null){
+        if (lastRoutePointMarker != null) {
             lastRoutePointMarker.remove();
-            lastRoutePointMarker=null;
+            lastRoutePointMarker = null;
         }
-        if(visualRouteTrace!=null){
+        if (visualRouteTrace != null) {
             visualRouteTrace.remove();
-            visualRouteTrace=null;
+            visualRouteTrace = null;
         }
         for (Marker marker : milestonePointMarkers) {
             marker.remove();
@@ -538,7 +547,7 @@ public class MapsActivity extends AppCompatActivity
         milestonePointMarkers.clear();
     }
 
-    private void moveMapCameraToRoute(Route route){
+    private void moveMapCameraToRoute(Route route) {
         int padding = 100; // offset from edges of the map in pixels
         int animationDuration = 2000;
         int width = getResources().getDisplayMetrics().widthPixels;
@@ -598,8 +607,8 @@ public class MapsActivity extends AppCompatActivity
                             mLoggingService.currentRoute.setPrivate(privateCheckbox.isChecked());
                             mLoggingService.saveRoute();
 
-                            if(followingExistingRoute){
-                                followingExistingRoute=false;
+                            if (followingExistingRoute) {
+                                followingExistingRoute = false;
                                 clearRouteFollowed();
                             }
 
@@ -712,10 +721,10 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    public String toJSON(){
+    public String toJSON() {
 
-        JSONObject jsonObj= new JSONObject();
-        if(selectedRoute==null || selectedRoute.getId()==-1)
+        JSONObject jsonObj = new JSONObject();
+        if (selectedRoute == null || selectedRoute.getId() == -1)
             return null;
         Route curr = selectedRoute;
         Log.d("maps:first_coord", String.valueOf(curr.getStartCoordinates()));
@@ -724,9 +733,9 @@ public class MapsActivity extends AppCompatActivity
         ArrayList<LocationPoint> trace = curr.getTrace();
         for (int i = 0; i < curr.size(); i++) {
             Location location = trace.get(i);
-            if (i > 0){
+            if (i > 0) {
                 //Log.d(LOG_TAG, i-1 + " to " + i + ": " + location.distanceTo(trace.get(i-1)));
-                distance += location.distanceTo(trace.get(i-1));
+                distance += location.distanceTo(trace.get(i - 1));
             }
             if (location.getSpeed() > max_speed)
                 max_speed = location.getSpeed();
@@ -738,16 +747,43 @@ public class MapsActivity extends AppCompatActivity
             jsonObj.put("start_time", curr.getDateStartString() + ", " + curr.getTimeStart());
             jsonObj.put("end_time", curr.getDateEndString() + ", " + curr.getTimeEnd());
             jsonObj.put("duration", curr.getDurationString());
-            jsonObj.put("distance", distance/1000);
-            jsonObj.put("aver_speed", total_speed/curr.size());
+            jsonObj.put("distance", distance / 1000);
+            jsonObj.put("aver_speed", total_speed / curr.size());
             jsonObj.put("max_speed", max_speed);
             jsonObj.put("num_waypoints", curr.size());
-            jsonObj.put("private", curr.getPrivate()==true ? "True" : "False");
+            jsonObj.put("private", curr.getPrivate() == true ? "True" : "False");
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
         Log.d(LOG_TAG, "JSON String: " + jsonObj.toString());
         return jsonObj.toString();
+    }
+
+    public void CaptureMapScreen() {
+        GoogleMap.SnapshotReadyCallback callback = new GoogleMap.SnapshotReadyCallback() {
+            Bitmap bitmap;
+
+            @Override
+            public void onSnapshotReady(Bitmap snapshot) {
+                // TODO Auto-generated method stub
+                bitmap = snapshot;
+                String path = MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "route_screenshot", null);
+                Uri uri_image = Uri.parse(path);
+
+                // share intent
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_STREAM, uri_image);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, "My Route");
+                sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Hey! Check out my route on Goodhikes");
+                sendIntent.setType("image/*");
+                startActivity(Intent.createChooser(sendIntent, "Share to..."));
+
+            }
+        };
+
+        mMap.snapshot(callback);
+
     }
 }
