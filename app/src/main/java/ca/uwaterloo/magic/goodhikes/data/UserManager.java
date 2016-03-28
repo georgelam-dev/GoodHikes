@@ -25,11 +25,19 @@ public class UserManager {
         editor.putString("ID", user.getId());
         editor.putString("name", user.getUsername());
         editor.putString("email", user.getEmail());
+        editor.putString("image", user.getImage());
 
         editor.commit();
 
         Log.d(LOG_TAG, "User ID = " + pref.getString("ID", "none"));
         Log.d(LOG_TAG, "User name = " + pref.getString("name", "none"));
+        //Log.d(LOG_TAG, "Image str = " + pref.getString("image", "none"));
+    }
+
+    /** Get encoded image string **/
+    public void setImage(String image) {
+        editor.putString("image", image);
+        editor.commit();
     }
 
     /** Clear user info after logout **/
@@ -48,9 +56,12 @@ public class UserManager {
         String ID = pref.getString("ID", "000");
         String name = pref.getString("name", "AAA");
         String email = pref.getString("email", "");
+        String image = pref.getString("image", "");
 
-        User user = new User(ID, name, email);
+        User user = new User(ID, name, email, image);
         return user;
     }
+
+
 
 }

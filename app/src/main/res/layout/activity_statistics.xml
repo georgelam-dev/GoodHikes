@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
     tools:context="ca.uwaterloo.magic.goodhikes.StatisticsActivity"
-    android:background="#094152">
+    android:background="#0c567b">
 
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"

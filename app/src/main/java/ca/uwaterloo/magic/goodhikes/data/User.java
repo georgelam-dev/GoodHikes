@@ -4,13 +4,15 @@ public class User {
     private String name;
     private String email;
     private String ID;
+    private String image;
 
     public User() {}
 
-    public User(String ID, String name, String email) {
+    public User(String ID, String name, String email, String image) {
         this.name = name;
         this.email = email;
         this.ID = ID;
+        this.image = image;
     }
 
     public String getId() {return ID;}
@@ -22,6 +24,8 @@ public class User {
         this.name = name;
     }
     public String getEmail() { return email; }
+    public void setImage(String image) { this.image = image; }
+    public String getImage() { return image; }
 
     /*public ContentValues toContentValues(){
         ContentValues values = new ContentValues();

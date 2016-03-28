@@ -149,7 +149,8 @@ public class LoginActivity extends AppCompatActivity {
                     String ID = json.getString("uid");
                     String name = json_user.getString("name");
                     String email = json_user.getString("email");
-                    User user = new User(ID, name, email);
+                    String image = json_user.getString("image_str");
+                    User user = new User(ID, name, email, image == "null" ? "" : image);
                     session.setUser(user);
 
 

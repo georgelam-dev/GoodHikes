@@ -721,6 +721,7 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
+    /* send route info to statistics in JSON*/
     public String toJSON() {
 
         JSONObject jsonObj = new JSONObject();
@@ -760,6 +761,7 @@ public class MapsActivity extends AppCompatActivity
         return jsonObj.toString();
     }
 
+    /* take screenshot of the map view and share to social media */
     public void CaptureMapScreen() {
         GoogleMap.SnapshotReadyCallback callback = new GoogleMap.SnapshotReadyCallback() {
             Bitmap bitmap;
