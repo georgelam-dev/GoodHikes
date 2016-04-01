@@ -92,7 +92,8 @@ public class ProfileActivity extends AppCompatActivity {
                      * store string in sharedpreference */
                     image = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImage);
                     ByteArrayOutputStream byte_out = new ByteArrayOutputStream();
-                    image.compress(Bitmap.CompressFormat.JPEG, 100, byte_out); //image is the bitmap object
+                    image.compress(Bitmap.CompressFormat.JPEG, 90, byte_out); //image is the bitmap object
+                    image = Bitmap.createScaledBitmap(image, 640, 480, false);
                     byte[] byte_arr = byte_out.toByteArray();
                     String encoded = Base64.encodeToString(byte_arr, Base64.DEFAULT);
                     Log.d(LOG_TAG, "encoded string length: " + encoded.length());

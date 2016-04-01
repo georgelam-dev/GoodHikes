@@ -436,7 +436,11 @@ public class RoutesDatabaseManager extends SQLiteOpenHelper {
                 } while(cursor.moveToNext());
 
             }
-        } finally {
+        } catch (IllegalStateException e) {
+            Log.d(LOG_TAG, "Error while trying to get milestones for route" + routeId);
+        }
+
+        finally {
             if (cursor != null && !cursor.isClosed()) {
                 cursor.close();
             }

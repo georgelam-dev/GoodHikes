@@ -52,6 +52,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -409,6 +410,7 @@ public class MapsActivity extends AppCompatActivity
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == RESULT_CANCELED) return;
         if (requestCode == PICK_ROUTE_REQUEST) {
             if (resultCode == RESULT_OK) {
@@ -418,19 +420,8 @@ public class MapsActivity extends AppCompatActivity
                     drawSelectedRoute();
             }
         }
-        if (requestCode == RESULT_LOAD_IMG) {
-            if (resultCode == RESULT_OK) {
-                Uri selectedImage = data.getData();
-                previewImage.setImageURI(selectedImage);
-            }
-        }
-        if (requestCode == RESULT_CAPTURE_IMG) {
-            if (resultCode == RESULT_OK) {
-                Bitmap imageBitmap = (Bitmap) data.getExtras().get("data");
-                previewImage.setImageBitmap(imageBitmap);
-            }
-        }
     }
+
 
     private void drawSelectedRoute() {
         if (selectedRoute == null || selectedRoute.getId() == -1) return;
@@ -671,54 +662,8 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    public class AddMilestoneDialogFragment extends DialogFragment {
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            LayoutInflater inflater = getActivity().getLayoutInflater();
-            View dialog = inflater.inflate(R.layout.dialog_add_milestone, null);
-            builder.setView(dialog)
-                    .setTitle(R.string.add_milestone)
-                    .setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            EditText noteField = (EditText) ((Dialog) dialog).findViewById(R.id.note);
-                            String note = noteField.getText().toString();
-                            Bitmap image = previewImage.getDrawable() == null ? null : ((BitmapDrawable) previewImage.getDrawable()).getBitmap();
-                            mLoggingService.currentRoute.addMilestone(note, image);
-                            Toast.makeText(getActivity(), "Milestone added", Toast.LENGTH_SHORT).show();
-                            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; milestone added");
-                        }
-                    })
-                    .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            Log.d(LOG_TAG, "Thread: " + Thread.currentThread().getId() + "; milestone cancelled");
-                        }
-                    });
-
-            Button addImageButton = (Button) dialog.findViewById(R.id.addImageButton);
-            addImageButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    // Create intent to Open Image applications like Gallery, Google Photos
-                    Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    getActivity().startActivityForResult(galleryIntent, RESULT_LOAD_IMG);
-                }
-            });
-
-            Button cameraButton = (Button) dialog.findViewById(R.id.cameraButton);
-            cameraButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    // Create intent to open device's Camera
-                    Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    getActivity().startActivityForResult(cameraIntent, RESULT_CAPTURE_IMG);
-                }
-            });
-
-            previewImage = (ImageView) dialog.findViewById(R.id.previewImage);
-
-            return builder.create();
-        }
+    public void imageSelected(Bitmap image, String note){
+        mLoggingService.currentRoute.addMilestone(note, image);
     }
 
     /* send route info to statistics in JSON*/
