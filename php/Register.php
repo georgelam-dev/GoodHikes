@@ -1,4 +1,11 @@
 <?php
+/**
+ * @package GoodHikes server-side
+ * @author Chelsea
+ * @copyright (C) 2016 - Team Magic
+ * @license GNU/GPLv3 http://www.gnu.org/licenses/gpl-3.0.html
+**/
+
 require_once 'include/DB_Functions.php';
 $db = new DB_Functions();
  
