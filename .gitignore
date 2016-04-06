@@ -9,3 +9,4 @@
 /.idea
 google_maps_api.xml
 php/include/config.php
+app/src/release/res/values/google_maps_api.xml

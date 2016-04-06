@@ -19,6 +19,7 @@
  */
 package ca.uwaterloo.magic.goodhikes;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -600,6 +601,17 @@ public class MapsActivity extends AppCompatActivity
         dialog.show(fm, "startTrackingDialog");
     }
 
+    /*
+    * http://stackoverflow.com/questions/15571010/fragment-inner-class-should-be-static
+    * Non static inner classes do hold a reference to their parent classes.
+    * The problem with making a Fragement innerclass non-static is that you always
+    * hold a reference to the Activity. The GarbageCollector cannot collect your Activity.
+    * So you can 'leak' the Activity if for example the orientation changes.
+    * Because the Fragment might still live and gets inserted in a new Activity.
+    *
+    * Lint parser gives error This fragment inner class should be static [ValidFragment]
+    * */
+    @SuppressLint("ValidFragment")
     public class SaveRouteDialogFragment extends DialogFragment {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -638,6 +650,7 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
+    @SuppressLint("ValidFragment")
     public class StopTrackingDialogFragment extends DialogFragment {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -660,6 +673,7 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
+    @SuppressLint("ValidFragment")
     public class StartTrackingDialogFragment extends DialogFragment {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
